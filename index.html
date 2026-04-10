@@ -79,7 +79,10 @@ body{font-family:var(--FB);background:var(--BG);min-height:100vh;color:var(--G)}
       <h1 class="title">Legal Advisor</h1>
       <p class="subtitle">Land Due Diligence · Title Verification · JV Risk Assessment</p>
     </div>
-    <div id="trainingBadge" class="hidden" style="font-size:10px;color:#6BAE8A;background:rgba(107,174,138,.1);padding:4px 10px;border-radius:6px"></div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <div id="trainingBadge" class="hidden" style="font-size:10px;color:#6BAE8A;background:rgba(107,174,138,.1);padding:4px 10px;border-radius:6px"></div>
+      <button onclick="API_KEY='';sessionStorage.removeItem('organo_key');document.getElementById('apiModal').classList.remove('hidden');" style="padding:4px 10px;border-radius:6px;border:1px solid #6BAE8A;background:transparent;color:#8AB89E;font-family:var(--FB);font-size:10px;font-weight:600;cursor:pointer">🔑 Change API Key</button>
+    </div>
   </div>
   <div class="tabs">
     <button class="tab active" onclick="showTab('upload')">Upload Documents</button>
@@ -371,7 +374,7 @@ async function runAnalysis() {
     console.error(e);
     errBox.innerHTML = '<strong>Error:</strong> ' + e.message;
     errBox.classList.remove('hidden');
-    if (e.message.includes('401') || e.message.includes('auth')) {
+    if (e.message.includes('401') || e.message.includes('auth') || e.message.includes('api-key') || e.message.includes('api_key')) {
       API_KEY = ''; sessionStorage.removeItem('organo_key');
       document.getElementById('apiModal').classList.remove('hidden');
     }
