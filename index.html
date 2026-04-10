@@ -217,8 +217,8 @@ Return ONLY valid JSON: {"files":["..."],"state":"...","location":{"district":".
 // ── API KEY ──
 function saveApiKey() {
   const key = document.getElementById('apiKeyInput').value.trim();
-  if (!key || !key.startsWith('sk-')) {
-    document.getElementById('apiError').textContent = 'Please enter a valid API key starting with sk-';
+  if (!key || key.length < 10) {
+    document.getElementById('apiError').textContent = 'Please enter a valid API key';
     document.getElementById('apiError').classList.remove('hidden');
     return;
   }
