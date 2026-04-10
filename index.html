@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Organo Legal Advisor</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Source+Serif+4:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.8.0/mammoth.browser.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--G:#1B2E23;--G2:#2D5A3F;--BG:#F5F2EC;--FB:'Outfit',sans-serif;--F:'Source Serif 4','Georgia',serif}
+body{font-family:var(--FB);background:var(--BG);min-height:100vh;color:var(--G)}
+.header{background:linear-gradient(135deg,#0D1F16,#1B2E23 40%,#0D1A13);padding:24px 20px 0}
+.header-inner{max-width:900px;margin:0 auto}
+.brand{font-family:var(--FB);font-size:9px;letter-spacing:4px;text-transform:uppercase;color:#6BAE8A;font-weight:700}
+.title{font-family:var(--F);font-size:26px;font-weight:700;color:#fff;margin:2px 0 0;line-height:1.2}
+.subtitle{font-size:10px;color:#8AB89E;margin:4px 0 0}
+.tabs{display:flex;gap:3px;margin-top:14px}
+.tab{padding:6px 16px;border-radius:8px 8px 0 0;border:none;background:rgba(255,255,255,.06);color:#8AB89E;font-family:var(--FB);font-size:11px;font-weight:600;cursor:pointer}
+.tab.active{background:var(--BG);color:var(--G)}
+.main{max-width:900px;margin:0 auto;padding:16px 20px 40px}
+.card{background:#fff;border:1px solid #DDD8CE;border-radius:14px;padding:22px;margin-bottom:12px}
+.sec{background:#fff;border:1px solid #DDD8CE;border-radius:12px;padding:16px 18px;margin-bottom:10px}
+.sec-title{font-family:var(--FB);font-size:11px;font-weight:700;color:var(--G);text-transform:uppercase;letter-spacing:1.5px;margin:0 0 10px;padding-bottom:6px;border-bottom:1px solid #E8E5DC}
+.upload-zone{border:2px dashed #8BA89A;border-radius:16px;padding:36px 24px;text-align:center;cursor:pointer;transition:all .3s}
+.upload-zone:hover,.upload-zone.drag{border-color:#2D5A3F;background:rgba(45,90,63,.05)}
+.upload-zone.disabled{opacity:.4;pointer-events:none}
+.file-tag{display:inline-flex;align-items:center;gap:4px;background:#E8E5DC;border-radius:8px;padding:4px 10px;font-size:11px;margin:3px}
+.btn{width:100%;padding:13px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--G),var(--G2));color:#fff;font-family:var(--FB);font-size:14px;font-weight:700;cursor:pointer;letter-spacing:.3px;margin-top:8px}
+.btn:disabled{background:#C6CFC9;cursor:not-allowed}
+.spinner{width:32px;height:32px;margin:0 auto 8px;border:3px solid #E8E5DC;border-top-color:var(--G);border-radius:50%;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.verdict-banner{border-radius:14px;padding:20px 22px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;color:#fff}
+.pain{border-radius:10px;padding:11px 14px;cursor:pointer;margin-bottom:5px;border-left:3px solid;transition:box-shadow .2s}
+.pain:hover{box-shadow:0 2px 12px rgba(0,0,0,.06)}
+.pain-badge{padding:2px 7px;border-radius:4px;color:#fff;font-size:8px;font-weight:700;text-transform:uppercase;display:inline-block}
+.risk-bar{height:6px;background:#E8E5DC;border-radius:3px;margin-top:4px}
+.risk-fill{height:6px;border-radius:3px;transition:width .8s ease-out}
+.flag-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:5px}
+.flag-item{background:#F7F6F3;border-radius:6px;padding:5px 8px;border:1px solid #E8E5DC}
+.doc-req{border-radius:7px;padding:7px 10px;margin-bottom:3px;border-left:3px solid}
+.ts-item{display:flex;gap:10px;align-items:flex-start;font-size:11px;margin-bottom:6px;padding:6px 8px;background:#FFF7ED;border-radius:6px;border:1px solid #FDBA74}
+.feedback-btn{padding:6px 14px;border-radius:8px;border:2px solid #DDD8CE;background:transparent;font-family:var(--FB);font-size:11px;font-weight:600;cursor:pointer}
+.feedback-btn.sel{border-color:currentColor;background:currentColor;color:#fff}
+.checklist-cat{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin:0 0 5px;padding-bottom:4px;border-bottom:1px solid #E8E5DC}
+.check-item{display:flex;align-items:flex-start;gap:6px;font-size:11px;padding:2px 0;cursor:pointer}
+.check-item input{margin-top:2px;accent-color:var(--G)}
+.disclaimer{margin-top:24px;padding:10px 14px;background:rgba(27,46,35,.04);border-radius:8px;border:1px solid rgba(27,46,35,.08);font-size:9px;color:#8BA89A;line-height:1.7}
+.hidden{display:none}
+.api-modal{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:999}
+.api-modal-box{background:#fff;border-radius:16px;padding:32px;max-width:460px;width:90%}
+.api-input{width:100%;padding:10px 12px;border:1px solid #DDD8CE;border-radius:8px;font-family:var(--FB);font-size:13px;margin:12px 0}
+.step-num{min-width:20px;height:20px;border-radius:50%;background:var(--G);color:#fff;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0}
+</style>
+</head>
+<body>
+
+<!-- API KEY MODAL -->
+<div id="apiModal" class="api-modal">
+<div class="api-modal-box">
+  <div class="brand" style="margin-bottom:8px">ORGANO</div>
+  <h2 style="font-family:var(--F);font-size:22px;font-weight:600;color:var(--G);margin-bottom:4px">Legal Advisor Portal</h2>
+  <p style="font-size:12px;color:#8BA89A;line-height:1.6;margin-bottom:8px">Enter your Anthropic API key to get started. Get one at <a href="https://console.anthropic.com" target="_blank" style="color:var(--G2)">console.anthropic.com</a></p>
+  <input id="apiKeyInput" class="api-input" type="password" placeholder="sk-ant-api03-..." autocomplete="off">
+  <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#8BA89A;margin-bottom:12px;cursor:pointer">
+    <input type="checkbox" id="rememberKey" checked style="accent-color:var(--G)"> Remember for this session
+  </label>
+  <button onclick="saveApiKey()" class="btn" style="margin:0">Enter Portal</button>
+  <p id="apiError" style="color:#DC2626;font-size:11px;margin-top:8px" class="hidden"></p>
+</div>
+</div>
+
+<!-- HEADER -->
+<div class="header">
+<div class="header-inner">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
+    <div>
+      <div class="brand">Organo</div>
+      <h1 class="title">Legal Advisor</h1>
+      <p class="subtitle">Land Due Diligence · Title Verification · JV Risk Assessment</p>
+    </div>
+    <div id="trainingBadge" class="hidden" style="font-size:10px;color:#6BAE8A;background:rgba(107,174,138,.1);padding:4px 10px;border-radius:6px"></div>
+  </div>
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('upload')">Upload Documents</button>
+    <button class="tab" onclick="showTab('report')">Analysis Report</button>
+    <button class="tab" onclick="showTab('checklist')">Checklist</button>
+  </div>
+</div>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="main">
+
+<!-- UPLOAD TAB -->
+<div id="tab-upload">
+<div class="card">
+  <h2 style="font-family:var(--F);font-size:20px;font-weight:600;margin-bottom:4px">Upload Land Documents</h2>
+  <p style="font-size:12px;color:#8BA89A;margin-bottom:14px">Upload all documents for the land parcel or JV deal. The AI identifies the state, applies regulations, and flags every pain point.</p>
+  
+  <div class="upload-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+    <div style="font-size:48px;margin-bottom:8px;opacity:.7">📁</div>
+    <div style="font-size:16px;font-weight:600">Drop documents here or click to browse</div>
+    <div style="font-size:12px;color:#6B8A7A;margin-top:8px">PDF · Word (.doc/.docx) · OpenDocument (.odt) · Scanned copies (PNG/JPG/TIFF/BMP) · Text files</div>
+    <div style="font-size:11px;color:#8BA89A;margin-top:4px">No file limit. Large sets auto-batch for analysis.</div>
+    <input type="file" id="fileInput" multiple accept=".pdf,.png,.jpg,.jpeg,.gif,.bmp,.tiff,.tif,.webp,.txt,.doc,.docx,.odt" style="display:none" onchange="handleFiles(this.files)">
+  </div>
+  
+  <div id="fileList" style="margin-top:10px;display:flex;flex-wrap:wrap;gap:5px"></div>
+  <div id="fileCount" style="font-size:11px;color:#8BA89A;margin-top:6px" class="hidden"></div>
+  
+  <button class="btn" id="analyzeBtn" disabled onclick="runAnalysis()">Analyze Documents</button>
+  
+  <div id="progressBox" class="hidden" style="margin-top:16px;text-align:center">
+    <div class="spinner"></div>
+    <div id="progressText" style="font-size:12px;font-weight:600"></div>
+  </div>
+  <div id="errorBox" class="hidden" style="margin-top:12px;background:#FEF2F2;border:1px solid #FCA5A5;border-radius:8px;padding:10px;color:#991B1B;font-size:12px"></div>
+</div>
+
+<!-- DOCUMENT CHECKLIST GUIDE -->
+<div class="card" id="docGuide"></div>
+</div>
+
+<!-- REPORT TAB -->
+<div id="tab-report" class="hidden">
+<div id="reportContent"><div style="text-align:center;padding:50px;color:#8BA89A;font-size:13px">No report yet. Upload documents and analyze.</div></div>
+</div>
+
+<!-- CHECKLIST TAB -->
+<div id="tab-checklist" class="hidden">
+<div class="card" id="checklistContent"></div>
+</div>
+
+<div class="disclaimer"><strong>Disclaimer:</strong> AI-powered preliminary screening for Organo. Not legal advice. All findings must be validated by a qualified property lawyer. Verify against official portals. The self-training feature improves accuracy over time but does not replace professional legal review.</div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════
+// ORGANO AI LEGAL ADVISOR — STANDALONE ENGINE
+// ═══════════════════════════════════════════════
+
+let API_KEY = '';
+let uploadedFiles = [];
+let analysisResult = null;
+let feedbackLog = [];
+
+// ── SYSTEM PROMPT ──
+const BRAIN = `ROLE: You are a senior legal advisor from a leading real estate firm in India. You have 25+ years of experience in land due diligence, title verification, construction feasibility, and Joint Venture structuring. You advise founders and CXOs of real estate development companies.
+CLIENT: Organo — a sustainable eco-habitat developer. Their team includes the MD, Director, Project Management Head, and Land & Legal team. They need FOUNDER-GRADE analysis — not generic summaries.
+
+YOUR MANDATE: Analyze uploaded land documents and deliver a crisp, actionable legal risk assessment that a founder can use to make a GO / NO-GO decision within minutes.
+
+THINKING PROCESS:
+1. First identify WHICH STATE the land is in from the documents
+2. Apply state-specific laws and regulations
+3. Think adversarially — what would a hostile seller, a corrupt official, or a future litigant exploit?
+4. Be precise, not verbose. Every sentence must add value.
+5. If data is missing, say so explicitly — never assume or hallucinate.
+
+STATE-SPECIFIC KNOWLEDGE:
+
+TELANGANA/HYDERABAD:
+- TGRERA: Projects >500 sq.m or >8 units must register. 70% escrow. QPRs per Circular 629/TG RERA/2024. Penalty up to 10% project cost.
+- HMDA: Jurisdiction 7,257 sq km. TG-bPASS since Apr 2024. Land Use Certificate mandatory. Sections 18-20 HMDA Act 2008.
+- HYDRAA/FTL: G.O. 99 (Jul 2024). 2,569 lakes. Buffer 30-200m. ANY construction in buffer = ILLEGAL. SC guidelines Nov/Dec 2024: cannot regularize. 262+ demolitions.
+- Bhu Bharati: Replaced Dharani Apr 2025. ROR/1B, PPB, Bhudhaar (14-digit), 11-column Pahani. ROR corrections deadline Apr 13, 2026.
+- Section 22-A: Digital block at SRO. Check BOTH IGRS + Bhu Bharati portals.
+- Stamp Duty 2025-26: 6% urban (4% stamp + 1.5% cess + 0.5% reg). April 2025: 30-50% circle rate revision.
+- NALA conversion: RDO/DRO order mandatory for ag-to-non-ag.
+- G.O. 111, LRS, Regional Ring Road, HADA airport restrictions.
+
+ANDHRA PRADESH: AP RERA, CRDA/VMRDA/VGTM UDA, AP Land Grabbing Act 1982, iNLA.
+KARNATAKA: RERA-K, BDA/BMRDA, khata transfers, Karnataka Land Revenue Act.
+TAMIL NADU: TNRERA, DTCP/CMDA, patta transfers, TN Land Reforms Act.
+MAHARASHTRA: MahaRERA, NA conversion, 7/12 extract, property card.
+
+PAN-INDIA CHECKS:
+- Title chain: 30+ years minimum. GPA must be registered (2009 SC ruling). HUF: all coparcener consents.
+- EC: Min 15yr, ideally 30yr. Gaps = title break.
+- Land classification: Agricultural/NA/Assigned/Ceiling/Forest/FTL/Tribal
+- Environmental clearances: CRZ, forest, wetland. RERA compliance.
+
+LITIGATION CHECK (CRITICAL):
+- Flag if NO court search report is provided. Prompt for District Court, High Court, Revenue Tribunal, RERA Tribunal, Consumer forum searches.
+- Lis pendens in EC = DEAL BLOCKER. Check Section 22-A / prohibited list / attachment orders.
+
+SELLER CAPACITY CHECK:
+- Competent to contract? (not minor, insolvent, unsound mind). Prior agreements to sell? Pending insolvency (IBC 2016)?
+- Company sellers: board resolution. HUF: Karta + coparcener consent. NRI: FEMA compliance. Inherited: legal heir certificate.
+
+PHYSICAL VERIFICATION PROMPT:
+- Flag if no site visit evidence. Prompt: boundaries vs FMB, encroachments, approach roads, waterbodies, cultivation status.
+
+TAX & COST:
+- Stamp duty on higher of agreement or circle rate. TDS 1% on >50L (Section 194-IA). GST on JV construction. Capital gains risk for seller.
+
+TIME-SENSITIVE ITEMS:
+- Pending mutations, NALA conversion, LRS L1/L2, FTL boundary finalization, Bhu Bharati ROR deadline Apr 13 2026, acquisition notifications, RERA registration.
+
+JV CHECKS:
+- CO-PROMOTER LIABILITY (CRITICAL per SC Sriganesh v. Unishire Feb 2026): ALL promoters jointly liable under RERA. Landowner title defect = Organo liability.
+- POA must be irrevocable and registered. Revocation risk per SC Akshay v. Aditya.
+- JV vs JDA distinction: naming does not determine legal nature. Check shared control/risk.
+- Exit clauses, indemnity, delay penalties, prior agreements by landowner.
+
+DOCUMENT REQUIREMENT: ALWAYS list needed docs as CRITICAL / IMPORTANT / RECOMMENDED.
+
+OUTPUT: Return ONLY valid JSON (no markdown, no backticks):
+{"deal_type":"...","state_detected":"...","location_details":{"district":"...","mandal":"...","village":"...","survey_nos":"..."},"land_summary":{"extent":"...","classification":"...","current_owners":"...","market_value_estimate":"..."},"go_no_go":{"verdict":"GO|GO WITH CONDITIONS|HOLD|NO-GO","confidence":1-100,"one_liner":"..."},"title_status":{"status":"Clear|Moderate Risk|High Risk|Critical","explanation":"..."},"regulatory_flags":{"rera_applicable":true,"rera_compliant":null,"planning_authority":"...","layout_approved":null,"conversion_status":"...","environmental_risk":"...","ftl_buffer_risk":"...","prohibited_list":"..."},"pain_points":[{"id":1,"severity":"CRITICAL|HIGH|MEDIUM|LOW","category":"...","issue":"...","legal_basis":"...","what_happens_if_ignored":"...","fix":"...","time_to_fix":"...","blocking":false}],"jv_specific_risks":[{"risk":"...","impact":"...","mitigation":"..."}],"litigation_check":{"court_search_provided":false,"pending_cases_detected":null,"lis_pendens":null,"prompt":"..."},"physical_verification":{"site_visit_evidenced":false,"prompt":"..."},"seller_capacity":{"competent":null,"prior_agreements":null,"insolvency_risk":null,"notes":"..."},"tax_implications":{"stamp_duty":"...","tds_applicable":true,"gst_notes":"...","capital_gains_risk":"..."},"time_sensitive_items":[{"item":"...","deadline":"...","consequence_if_missed":"..."}],"documents_required":{"critical":[{"doc":"...","why":"...","where":"...","est_time":"..."}],"important":[{"doc":"...","why":"...","where":"...","est_time":"..."}],"recommended":[{"doc":"...","why":"...","where":"...","est_time":"..."}]},"risk_scores":{"legal":50,"compliance":50,"financial":50,"overall":50},"predicted_risks":{"ownership_dispute_pct":0,"approval_delay_pct":0,"legal_complication_pct":0,"assumptions":"..."},"stamp_duty_notes":"...","final_recommendation":{"verdict":"GO|GO WITH CONDITIONS|HOLD|NO-GO","points":["..."]}}
+
+Be the lawyer who SAVES the founder from a bad deal. Flag aggressively. Flag ABSENCE of expected information.`;
+
+const EXTRACT_PROMPT = `Extract all factual legal data from these documents for Organo. Be exhaustive.
+Return ONLY valid JSON: {"files":["..."],"state":"...","location":{"district":"...","mandal":"...","village":"..."},"land":{"survey_nos":"...","extent":"...","classification":"...","owners":"..."},"findings":[{"category":"...","detail":"...","severity":"HIGH|MEDIUM|LOW","source":"..."}],"encumbrances":["..."],"title_chain":"...","missing":["..."],"red_flags":["..."]}`;
+
+// ── API KEY ──
+function saveApiKey() {
+  const key = document.getElementById('apiKeyInput').value.trim();
+  if (!key || !key.startsWith('sk-')) {
+    document.getElementById('apiError').textContent = 'Please enter a valid API key starting with sk-';
+    document.getElementById('apiError').classList.remove('hidden');
+    return;
+  }
+  API_KEY = key;
+  if (document.getElementById('rememberKey').checked) sessionStorage.setItem('organo_key', key);
+  document.getElementById('apiModal').classList.add('hidden');
+}
+
+// ── FILE HANDLING ──
+function getFileType(f) {
+  const n = f.name.toLowerCase();
+  if (f.type === 'application/pdf' || n.endsWith('.pdf')) return 'pdf';
+  if (f.type.includes('wordprocessingml') || n.endsWith('.docx')) return 'docx';
+  if (f.type === 'application/msword' || n.endsWith('.doc')) return 'doc';
+  if (n.endsWith('.odt') || f.type.includes('opendocument')) return 'odt';
+  if (f.type.startsWith('image/')) return 'image';
+  return 'text';
+}
+
+const ICONS = {pdf:'📕',docx:'📘',doc:'📘',odt:'📙',image:'🖼️',text:'📝'};
+const LABELS = {pdf:'PDF',docx:'DOCX',doc:'DOC',odt:'ODT',image:'SCAN',text:'TXT'};
+const fmtSz = b => b<1024?b+' B':b<1048576?(b/1024).toFixed(0)+' KB':(b/1048576).toFixed(1)+' MB';
+
+function handleFiles(fl) {
+  const ok = Array.from(fl).filter(f =>
+    f.type === 'application/pdf' || f.type.startsWith('image/') || f.type.includes('word') ||
+    f.type.includes('opendocument') || /\.(txt|doc|docx|odt|pdf|png|jpg|jpeg|gif|bmp|tiff?|webp)$/i.test(f.name)
+  );
+  uploadedFiles = [...uploadedFiles, ...ok];
+  renderFileList();
+}
+
+function removeFile(idx) {
+  uploadedFiles.splice(idx, 1);
+  renderFileList();
+}
+
+function renderFileList() {
+  const el = document.getElementById('fileList');
+  const cnt = document.getElementById('fileCount');
+  el.innerHTML = uploadedFiles.map((f, i) => {
+    const ft = getFileType(f);
+    return `<span class="file-tag">${ICONS[ft]||'📝'} <span style="max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500">${f.name}</span> <span style="font-size:9px;color:#8BA89A">${fmtSz(f.size)}</span> <span style="font-size:8px;font-weight:700;color:#2D5A3F">${LABELS[ft]||'TXT'}</span> <span style="cursor:pointer;color:#DC2626;font-size:14px" onclick="removeFile(${i})">&times;</span></span>`;
+  }).join('');
+  if (uploadedFiles.length) {
+    cnt.classList.remove('hidden');
+    cnt.textContent = uploadedFiles.length + ' file' + (uploadedFiles.length>1?'s':'') + ' · ' + fmtSz(uploadedFiles.reduce((s,f) => s+f.size, 0)) + ' total';
+  } else cnt.classList.add('hidden');
+  document.getElementById('analyzeBtn').disabled = !uploadedFiles.length;
+  document.getElementById('analyzeBtn').textContent = 'Analyze ' + uploadedFiles.length + ' Document' + (uploadedFiles.length!==1?'s':'');
+}
+
+// ── DRAG & DROP ──
+const dz = document.getElementById('dropZone');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('drag'));
+dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('drag'); handleFiles(e.dataTransfer.files); });
+
+// ── FILE READING ──
+const toB64 = f => new Promise((r,j) => { const rd=new FileReader(); rd.onload=()=>r(rd.result.split(',')[1]); rd.onerror=()=>j('fail'); rd.readAsDataURL(f); });
+const toAB = f => new Promise((r,j) => { const rd=new FileReader(); rd.onload=()=>r(rd.result); rd.onerror=()=>j('fail'); rd.readAsArrayBuffer(f); });
+
+async function readDocx(f) {
+  try { return (await mammoth.extractRawText({arrayBuffer: await toAB(f)})).value; }
+  catch(e) { return '[Cannot extract ' + f.name + '. Convert to PDF.]'; }
+}
+
+async function fileToBlocks(f) {
+  const ft = getFileType(f), bl = [];
+  if (ft==='pdf') {
+    bl.push({type:'document',source:{type:'base64',media_type:'application/pdf',data:await toB64(f)}});
+    bl.push({type:'text',text:'[PDF: '+f.name+' '+fmtSz(f.size)+']'});
+  } else if (ft==='image') {
+    const mt = f.type==='image/png'?'image/png':f.type==='image/gif'?'image/gif':f.type==='image/webp'?'image/webp':'image/jpeg';
+    bl.push({type:'image',source:{type:'base64',media_type:mt,data:await toB64(f)}});
+    bl.push({type:'text',text:'[Scan: '+f.name+' — OCR everything: text, stamps, seals, survey numbers, handwritten notes, signatures]'});
+  } else if (ft==='docx'||ft==='doc'||ft==='odt') {
+    bl.push({type:'text',text:'--- '+f.name+' ---\n'+(await readDocx(f))});
+  } else {
+    bl.push({type:'text',text:'--- '+f.name+' ---\n'+(await f.text())});
+  }
+  return bl;
+}
+
+function estimateTokens(b) {
+  if (b.type==='text') return Math.ceil((b.text||'').length/4);
+  if (b.type==='document') return Math.ceil((b.source?.data||'').length*.75/4)+500;
+  return 1600;
+}
+
+// ── API CALL ──
+async function callAPI(system, content) {
+  const r = await fetch('https://api.anthropic.com/v1/messages', {
+    method:'POST', headers:{'Content-Type':'application/json','x-api-key':API_KEY,'anthropic-version':'2023-06-01'},
+    body: JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:4096,system,messages:[{role:'user',content}]})
+  });
+  if (!r.ok) { const e = await r.json().catch(()=>({})); throw new Error(e.error?.message || 'API '+r.status); }
+  const raw = (await r.json()).content.filter(b=>b.type==='text').map(b=>b.text).join('\n');
+  return raw.replace(/```json/g,'').replace(/```/g,'').trim();
+}
+
+// ── ANALYSIS ENGINE ──
+async function runAnalysis() {
+  if (!uploadedFiles.length) return;
+  if (!API_KEY) { document.getElementById('apiModal').classList.remove('hidden'); return; }
+  
+  const btn = document.getElementById('analyzeBtn');
+  const prog = document.getElementById('progressBox');
+  const progText = document.getElementById('progressText');
+  const errBox = document.getElementById('errorBox');
+  
+  btn.disabled = true; prog.classList.remove('hidden'); errBox.classList.add('hidden');
+  dz.classList.add('disabled');
+  
+  try {
+    const TOKEN_BUDGET = 120000;
+    const batches = []; let cur = [], curT = 0;
+    
+    for (let i = 0; i < uploadedFiles.length; i++) {
+      progText.textContent = 'Reading ' + (i+1) + '/' + uploadedFiles.length + ': ' + uploadedFiles[i].name;
+      const bl = await fileToBlocks(uploadedFiles[i]);
+      const t = bl.reduce((s,b) => s + estimateTokens(b), 0);
+      if (curT + t > TOKEN_BUDGET && cur.length > 0) { batches.push(cur); cur = []; curT = 0; }
+      cur.push(...bl); curT += t;
+    }
+    if (cur.length) batches.push(cur);
+    
+    const trainingCtx = feedbackLog.length ? '\n\nTRAINING FROM PAST ANALYSES:\n' + feedbackLog.slice(-5).map(f=>'- Verdict: '+f.verdict+'. Rating: '+f.accuracy+(f.missed?'. Missed: '+f.missed:'')).join('\n') : '';
+    const fullPrompt = BRAIN + trainingCtx;
+    
+    if (batches.length === 1) {
+      progText.textContent = 'Senior legal advisor analyzing ' + uploadedFiles.length + ' document' + (uploadedFiles.length>1?'s':'') + '...';
+      batches[0].push({type:'text',text:'Analyze ALL above. Return ONLY JSON.'});
+      analysisResult = JSON.parse(await callAPI(fullPrompt, batches[0]));
+    } else {
+      const findings = [];
+      for (let b = 0; b < batches.length; b++) {
+        progText.textContent = 'Pass 1/2: Extracting batch ' + (b+1) + '/' + batches.length + '...';
+        batches[b].push({type:'text',text:'Extract all findings. Return ONLY JSON.'});
+        try { findings.push(JSON.parse(await callAPI(EXTRACT_PROMPT, batches[b]))); }
+        catch(e) { findings.push({raw_text: 'extraction failed'}); }
+      }
+      progText.textContent = 'Pass 2/2: Synthesizing ' + batches.length + ' batches...';
+      analysisResult = JSON.parse(await callAPI(fullPrompt, [{type:'text',text:'Findings from '+batches.length+' batches ('+uploadedFiles.length+' files):\n\n'+JSON.stringify(findings,null,2)+'\n\nSynthesize into final report. Return ONLY JSON.'}]));
+    }
+    
+    renderReport(analysisResult);
+    showTab('report');
+  } catch(e) {
+    console.error(e);
+    errBox.innerHTML = '<strong>Error:</strong> ' + e.message;
+    errBox.classList.remove('hidden');
+    if (e.message.includes('401') || e.message.includes('auth')) {
+      API_KEY = ''; sessionStorage.removeItem('organo_key');
+      document.getElementById('apiModal').classList.remove('hidden');
+    }
+  } finally {
+    btn.disabled = false; prog.classList.add('hidden'); dz.classList.remove('disabled');
+  }
+}
+
+// ── REPORT RENDERER ──
+function renderReport(d) {
+  const vc = {'GO':'#16A34A','GO WITH CONDITIONS':'#CA8A04','HOLD':'#EA580C','NO-GO':'#DC2626'};
+  const go = d.go_no_go || {};
+  const color = vc[go.verdict] || '#8BA89A';
+  const rs = d.risk_scores || {};
+  const ts = d.title_status || {};
+  const ls = d.land_summary || {};
+  const loc = d.location_details || {};
+  const rf = d.regulatory_flags || {};
+  const pr = d.predicted_risks || {};
+  const fr = d.final_recommendation || {};
+  const pains = (d.pain_points || []).sort((a,b) => {const o={CRITICAL:0,HIGH:1,MEDIUM:2,LOW:3}; return (o[a.severity]||4)-(o[b.severity]||4);});
+  const jv = d.jv_specific_risks || [];
+  const docReq = d.documents_required || {};
+  const sevC = {CRITICAL:'#EF4444',HIGH:'#F97316',MEDIUM:'#EAB308',LOW:'#22C55E'};
+  const sevBg = {CRITICAL:'#FEF2F2',HIGH:'#FFF7ED',MEDIUM:'#FEFCE8',LOW:'#F0FDF4'};
+  const sevTxt = {CRITICAL:'#991B1B',HIGH:'#9A3412',MEDIUM:'#854D0E',LOW:'#166534'};
+  
+  let h = '';
+  
+  // VERDICT
+  h += `<div class="verdict-banner" style="background:${color}"><div><div style="font-size:9px;opacity:.6;text-transform:uppercase;letter-spacing:2px">Founder Decision</div><div style="font-family:var(--F);font-size:28px;font-weight:600;line-height:1.2">${go.verdict||'PENDING'}</div><div style="font-size:12px;opacity:.85;margin-top:4px;max-width:500px">${go.one_liner||''}</div></div><div style="text-align:center"><div style="font-size:42px;opacity:.3;font-weight:800;line-height:1">${rs.overall||'?'}</div><div style="font-size:9px;opacity:.5;text-transform:uppercase;letter-spacing:1px">Risk Score</div></div></div>`;
+  
+  // LAND SUMMARY
+  h += `<div class="sec"><div class="sec-title">Land Summary · ${d.state_detected||''} · ${d.deal_type||''}</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 20px;font-size:12px">`;
+  [['Location',[(loc.district||''),(loc.mandal||''),(loc.village||'')].filter(Boolean).join(', ')],['Survey No(s)',loc.survey_nos],['Extent',ls.extent],['Classification',ls.classification],['Owner(s)',ls.current_owners],['Market Value',ls.market_value_estimate]].forEach(([l,v])=>{if(v)h+=`<div><span style="font-size:10px;color:#8BA89A">${l}: </span><span style="font-weight:500">${v}</span></div>`;});
+  h += '</div></div>';
+  
+  // TITLE STATUS
+  const tc = ts.status==='Clear'?'#16A34A':(ts.status==='High Risk'||ts.status==='Critical')?'#DC2626':'#CA8A04';
+  h += `<div class="sec" style="border-left:4px solid ${tc}"><div class="sec-title">Title Status</div><span style="display:inline-block;padding:3px 12px;border-radius:6px;background:${tc};color:#fff;font-size:11px;font-weight:700;margin-bottom:6px">${ts.status||'Unknown'}</span><div style="font-size:12px;line-height:1.6">${ts.explanation||'Insufficient information.'}</div></div>`;
+  
+  // REGULATORY FLAGS
+  h += '<div class="sec"><div class="sec-title">Regulatory Compliance</div><div class="flag-grid">';
+  Object.entries(rf).forEach(([k,v]) => {
+    const good = v===true||v==='Clear'||v==='Valid'||v==='None'||v==='NA';
+    const bad = v===false||v==='Flagged'||v==='Missing'||v==='Confirmed'||v==='Critical'||v==='High';
+    const c = good?'#16A34A':bad?'#DC2626':'#CA8A04';
+    const label = k.replace(/_/g,' ').replace(/\b\w/g,l=>l.toUpperCase());
+    h += `<div class="flag-item"><div style="font-size:8px;color:#8BA89A;text-transform:uppercase;letter-spacing:.8px">${label}</div><div style="font-size:11px;font-weight:700;color:${c}">${v===true?'Yes':v===false?'No':v==null?'Unknown':v}</div></div>`;
+  });
+  h += '</div></div>';
+  
+  // PAIN POINTS
+  h += `<div class="sec"><div class="sec-title">Pain Points (${pains.length})</div>`;
+  if (!pains.length) h += '<div style="font-size:12px;color:#8BA89A">No issues found.</div>';
+  pains.forEach((p,i) => {
+    h += `<div class="pain" style="background:${sevBg[p.severity]||'#FEFCE8'};border-color:${sevC[p.severity]||'#EAB308'}" onclick="this.querySelector('.pain-detail').classList.toggle('hidden')"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px"><div style="flex:1"><div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap;margin-bottom:3px"><span class="pain-badge" style="background:${sevC[p.severity]}">${p.severity}</span>${p.blocking?'<span class="pain-badge" style="background:#1E1B4B">BLOCKS DEAL</span>':''}<span style="font-size:9px;color:#8BA89A">${p.category||''}</span></div><div style="font-size:12.5px;font-weight:600;color:${sevTxt[p.severity]};line-height:1.45">${p.issue}</div></div><span style="font-size:12px;color:${sevTxt[p.severity]}">▾</span></div><div class="pain-detail hidden" style="margin-top:10px;padding-top:10px;border-top:1px solid ${sevC[p.severity]}22;display:grid;gap:6px">${p.legal_basis?`<div style="font-size:10px;color:${sevTxt[p.severity]}"><strong>Legal basis:</strong> ${p.legal_basis}</div>`:''}${p.what_happens_if_ignored?`<div style="font-size:10px;color:#DC2626"><strong>If ignored:</strong> ${p.what_happens_if_ignored}</div>`:''}${p.fix?`<div style="font-size:10px;color:#166534"><strong>Fix:</strong> ${p.fix}</div>`:''}${p.time_to_fix?`<div style="font-size:10px;color:#8BA89A"><strong>Timeline:</strong> ${p.time_to_fix}</div>`:''}</div></div>`;
+  });
+  h += '</div>';
+  
+  // JV RISKS
+  if (jv.length) {
+    h += '<div class="sec"><div class="sec-title">Joint Venture Risks</div>';
+    jv.forEach(r => { h += `<div style="background:#FFF7ED;border:1px solid #FDBA74;border-radius:8px;padding:10px;margin-bottom:4px"><div style="font-size:12px;font-weight:600;color:#9A3412">${r.risk}</div><div style="font-size:10px;color:#EA580C;margin-top:2px">Impact: ${r.impact}</div><div style="font-size:10px;color:#166534;margin-top:2px">Mitigation: ${r.mitigation}</div></div>`; });
+    h += '</div>';
+  }
+  
+  // LITIGATION CHECK
+  if (d.litigation_check) {
+    const lc = d.litigation_check;
+    h += `<div class="sec" style="border-left:4px solid ${lc.lis_pendens?'#DC2626':lc.court_search_provided?'#16A34A':'#CA8A04'}"><div class="sec-title">Litigation Check</div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">`;
+    [['Court search provided',lc.court_search_provided,'pos'],['Pending cases',lc.pending_cases_detected,'neg'],['Lis pendens',lc.lis_pendens,'neg']].forEach(([l,v,type])=>{
+      const c = v===true?(type==='pos'?'#16A34A':'#DC2626'):v===false?(type==='pos'?'#DC2626':'#16A34A'):'#CA8A04';
+      h += `<div style="font-size:11px;padding:4px 10px;border-radius:6px;background:${c}18;border:1px solid ${c}44;color:${c};font-weight:600">${l}: ${v===true?'Yes':v===false?'No':'Unknown'}</div>`;
+    });
+    h += '</div>';
+    if (lc.prompt) h += `<div style="font-size:11px;color:#9A3412;background:#FFF7ED;padding:8px;border-radius:6px;border-left:3px solid #F97316">${lc.prompt}</div>`;
+    h += '</div>';
+  }
+  
+  // PHYSICAL VERIFICATION
+  if (d.physical_verification) {
+    const pv = d.physical_verification;
+    const ok = pv.site_visit_evidenced;
+    h += `<div class="sec" style="border-left:4px solid ${ok?'#16A34A':'#CA8A04'}"><div class="sec-title">Physical Verification</div><div style="font-size:11px;color:${ok?'#166534':'#9A3412'};padding:6px 10px;border-radius:6px;background:${ok?'#F0FDF4':'#FFF7ED'};border:1px solid ${ok?'#86EFAC':'#FDBA74'}">${ok?'Site visit evidence found.':'No site visit evidence. '+pv.prompt}</div></div>`;
+  }
+  
+  // SELLER CAPACITY
+  if (d.seller_capacity) {
+    const sc = d.seller_capacity;
+    h += '<div class="sec"><div class="sec-title">Seller Capacity to Transact</div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:6px">';
+    [['Competent',sc.competent,'pos'],['Prior agreements',sc.prior_agreements,'neg'],['Insolvency risk',sc.insolvency_risk,'neg']].forEach(([l,v,type])=>{
+      const c = v===true?(type==='pos'?'#16A34A':'#DC2626'):v===false?(type==='pos'?'#DC2626':'#16A34A'):'#CA8A04';
+      h += `<div style="text-align:center;padding:6px;border-radius:6px;background:${c}12;border:1px solid ${c}33"><div style="color:#8BA89A;font-size:8px;text-transform:uppercase;margin-bottom:2px">${l}</div><div style="color:${c};font-weight:700;font-size:12px">${v===true?'Yes':v===false?'No':'Unknown'}</div></div>`;
+    });
+    h += '</div>';
+    if (sc.notes) h += `<div style="font-size:11px;line-height:1.5">${sc.notes}</div>`;
+    h += '</div>';
+  }
+  
+  // TIME-SENSITIVE
+  if (d.time_sensitive_items?.length) {
+    h += '<div class="sec" style="border-left:4px solid #EA580C"><div class="sec-title">Time-Sensitive Items</div>';
+    d.time_sensitive_items.forEach(t => {
+      h += `<div class="ts-item"><div style="min-width:60px;color:#DC2626;font-weight:700;font-size:10px">${t.deadline||'ASAP'}</div><div style="flex:1"><div style="font-weight:600">${t.item}</div><div style="color:#9A3412;font-size:10px;margin-top:1px">${t.consequence_if_missed||''}</div></div></div>`;
+    });
+    h += '</div>';
+  }
+  
+  // TAX
+  if (d.tax_implications) {
+    const tx = d.tax_implications;
+    h += '<div class="sec"><div class="sec-title">Tax and Cost Implications</div><div style="display:grid;gap:4px;font-size:11px">';
+    if (tx.stamp_duty) h += `<div><span style="color:#8BA89A">Stamp Duty: </span>${tx.stamp_duty}</div>`;
+    if (tx.tds_applicable!=null) h += `<div><span style="color:#8BA89A">TDS (Sec 194-IA): </span>${tx.tds_applicable?'Applicable — 1% on >50L':'Not applicable'}</div>`;
+    if (tx.gst_notes) h += `<div><span style="color:#8BA89A">GST: </span>${tx.gst_notes}</div>`;
+    if (tx.capital_gains_risk) h += `<div><span style="color:#8BA89A">Capital Gains: </span>${tx.capital_gains_risk}</div>`;
+    h += '</div></div>';
+  }
+  
+  // DOCUMENTS REQUIRED
+  h += '<div class="sec"><div class="sec-title">Documents Required</div>';
+  [['Critical — Deal cannot proceed without','#DC2626',docReq.critical],['Important — Obtain before signing','#CA8A04',docReq.important],['Recommended — For completeness','#16A34A',docReq.recommended]].forEach(([title,color,docs])=>{
+    if (!docs?.length) return;
+    h += `<div style="font-size:10px;font-weight:700;color:${color};text-transform:uppercase;letter-spacing:1px;margin:8px 0 5px">${title}</div>`;
+    docs.forEach(d => {
+      const doc = typeof d==='string'?d:d.doc;
+      const meta = typeof d==='object'?[d.why,d.where&&'From: '+d.where,d.est_time].filter(Boolean).join(' · '):'';
+      h += `<div class="doc-req" style="background:#fff;border:1px solid #E8E5DC;border-left-color:${color}"><div style="font-size:12px;font-weight:600">${doc}</div>${meta?`<div style="font-size:10px;color:#8BA89A;margin-top:2px">${meta}</div>`:''}</div>`;
+    });
+  });
+  h += '</div>';
+  
+  // RISK SCORES
+  h += '<div class="sec"><div class="sec-title">Risk Analysis</div><div style="display:flex;gap:12px;flex-wrap:wrap">';
+  [['Legal',rs.legal],['Compliance',rs.compliance],['Financial',rs.financial]].forEach(([l,s])=>{
+    const c = s>70?'#DC2626':s>40?'#CA8A04':'#16A34A';
+    h += `<div style="flex:1;min-width:100px"><div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px"><span>${l}</span><span style="color:${c};font-weight:700">${s||0}/100</span></div><div class="risk-bar"><div class="risk-fill" style="background:${c};width:${s||0}%"></div></div></div>`;
+  });
+  h += '</div>';
+  if (d.stamp_duty_notes) h += `<div style="font-size:10px;color:#8BA89A;margin-top:8px;font-style:italic">Stamp duty: ${d.stamp_duty_notes}</div>`;
+  h += '</div>';
+  
+  // PREDICTED RISKS
+  h += '<div class="sec"><div class="sec-title">Predicted Risks</div><div style="display:flex;gap:16px;flex-wrap:wrap;justify-content:center;margin:4px 0">';
+  [['Ownership Dispute',pr.ownership_dispute_pct],['Approval Delay',pr.approval_delay_pct],['Legal Complication',pr.legal_complication_pct]].forEach(([l,v])=>{
+    const pct = v||0; const c = pct>60?'#DC2626':pct>30?'#CA8A04':'#16A34A';
+    h += `<div style="text-align:center;min-width:90px"><div style="font-size:24px;font-weight:700;color:${c}">${pct}%</div><div style="font-size:9px;color:#8BA89A">${l}</div></div>`;
+  });
+  h += '</div>';
+  if (pr.assumptions) h += `<div style="font-size:10px;color:#8BA89A;margin-top:6px;font-style:italic">Assumptions: ${pr.assumptions}</div>`;
+  h += '</div>';
+  
+  // FINAL RECOMMENDATION
+  h += `<div class="sec" style="border-left:4px solid ${color}"><div class="sec-title">Final Recommendation</div><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span style="padding:4px 16px;border-radius:8px;background:${color};color:#fff;font-size:13px;font-weight:700">${fr.verdict||go.verdict||''}</span></div>`;
+  (fr.points||[]).forEach((pt,i) => {
+    h += `<div style="display:flex;gap:8px;align-items:flex-start;font-size:12px;margin-bottom:4px"><span class="step-num">${i+1}</span><span style="line-height:1.5">${pt}</span></div>`;
+  });
+  h += '</div>';
+  
+  // FEEDBACK
+  h += `<div class="sec"><div class="sec-title">Train the Model — Your Feedback</div><div style="font-size:11px;color:#8BA89A;margin-bottom:10px">Your feedback trains future analyses. Was this assessment accurate?</div><div id="feedbackArea" style="display:flex;gap:6px;margin-bottom:12px"><button class="feedback-btn" onclick="selectFeedback('Accurate')" style="color:#16A34A">Accurate</button><button class="feedback-btn" onclick="selectFeedback('Partially')" style="color:#CA8A04">Partially</button><button class="feedback-btn" onclick="selectFeedback('Missed Issues')" style="color:#DC2626">Missed Issues</button></div><div id="feedbackExtra" class="hidden"><div style="font-size:10px;font-weight:600;margin-bottom:4px">What did the AI miss?</div><textarea id="feedbackMissed" style="width:100%;min-height:60px;border-radius:8px;border:1px solid #DDD8CE;padding:8px;font-family:var(--FB);font-size:11px;resize:vertical;box-sizing:border-box" placeholder="Describe issues the AI should have caught..."></textarea></div><div style="margin-top:8px"><div style="font-size:10px;font-weight:600;margin-bottom:4px">Additional notes</div><textarea id="feedbackNotes" style="width:100%;min-height:40px;border-radius:8px;border:1px solid #DDD8CE;padding:8px;font-family:var(--FB);font-size:11px;resize:vertical;box-sizing:border-box" placeholder="What your lawyer found, final decision..."></textarea></div><button id="feedbackSubmitBtn" class="btn" style="margin-top:8px;background:#C6CFC9" disabled onclick="submitFeedback()">Submit Feedback</button><div id="feedbackSuccess" class="hidden" style="background:#F0FDF4;border:1px solid #86EFAC;border-radius:10px;padding:14px;font-size:12px;color:#166534;text-align:center;margin-top:8px">Feedback recorded. This will improve future analyses.</div></div>`;
+  
+  document.getElementById('reportContent').innerHTML = h;
+}
+
+let selectedFeedback = null;
+function selectFeedback(val) {
+  selectedFeedback = val;
+  document.querySelectorAll('#feedbackArea .feedback-btn').forEach(b => b.classList.remove('sel'));
+  event.target.classList.add('sel');
+  document.getElementById('feedbackExtra').classList.toggle('hidden', val==='Accurate');
+  document.getElementById('feedbackSubmitBtn').disabled = false;
+  document.getElementById('feedbackSubmitBtn').style.background = 'var(--G)';
+}
+
+function submitFeedback() {
+  const fb = {
+    accuracy: selectedFeedback,
+    missed: document.getElementById('feedbackMissed')?.value || '',
+    notes: document.getElementById('feedbackNotes')?.value || '',
+    verdict: analysisResult?.go_no_go?.verdict || '',
+    timestamp: new Date().toISOString()
+  };
+  feedbackLog.push(fb);
+  document.getElementById('feedbackSubmitBtn').classList.add('hidden');
+  document.getElementById('feedbackArea').classList.add('hidden');
+  document.getElementById('feedbackExtra').classList.add('hidden');
+  document.getElementById('feedbackSuccess').classList.remove('hidden');
+  document.querySelector('[onclick="showTab(\'upload\')"]').nextElementSibling.nextElementSibling;
+  const badge = document.getElementById('trainingBadge');
+  badge.classList.remove('hidden');
+  badge.textContent = feedbackLog.length + ' training feedback' + (feedbackLog.length>1?'s':'') + ' logged';
+}
+
+// ── TABS ──
+function showTab(name) {
+  ['upload','report','checklist'].forEach(t => {
+    document.getElementById('tab-'+t).classList.toggle('hidden', t!==name);
+  });
+  document.querySelectorAll('.tab').forEach((btn,i) => {
+    const tabs = ['upload','report','checklist'];
+    btn.classList.toggle('active', tabs[i]===name);
+  });
+}
+
+// ── DOCUMENT GUIDE ──
+function renderDocGuide() {
+  const cats = [
+    {cat:'Title Documents',items:['Sale Deed (current + mother deed)','Link documents (30-year chain)','Encumbrance Certificate (15-30 years)','Pattadar Passbook / ROR / 1B extract','Pahani / 7-12 extract','Certified copies of parent deeds']},
+    {cat:'Revenue & Survey',items:['Survey map / FMB sketch','Tippan (village map)','Tax paid receipts (last 10 years)','Mutation entries','Land classification certificate']},
+    {cat:'Approvals & Conversions',items:['Layout approval (HMDA/DTCP/BDA/CMDA)','NALA / NA conversion order','Land Use Certificate','Building permission (if existing)','Environmental clearance','RERA registration']},
+    {cat:'Legal & Compliance',items:['Section 22-A clearance','Prohibited property search (both portals)','FTL/Buffer zone map','NOC from relevant authorities','Legal opinion from seller\'s lawyer','Court search report (District + High Court)']},
+    {cat:'JV / Agreement Docs',items:['Joint Venture agreement','Development agreement','Power of Attorney (registered)','Revenue/area sharing terms','MOU or Letter of Intent']}
+  ];
+  let h = '<h3 style="font-family:var(--F);font-size:16px;font-weight:600;margin-bottom:12px">Documents checklist for land due diligence</h3>';
+  cats.forEach(g => {
+    h += `<div style="margin-bottom:14px"><div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;padding-bottom:4px;border-bottom:1px solid #E8E5DC">${g.cat}</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:2px 16px">`;
+    g.items.forEach(item => { h += `<div style="font-size:11px;color:#4A6B5A;padding:2px 0;display:flex;gap:6px;align-items:flex-start"><span style="color:#8BA89A;font-size:10px">○</span>${item}</div>`; });
+    h += '</div></div>';
+  });
+  document.getElementById('docGuide').innerHTML = h;
+}
+
+// ── CHECKLIST ──
+function renderChecklist() {
+  const checks = [
+    {t:'Bhu Bharati Portal',i:['ROR / 1B extract verified','PPB name match','Bhudhaar (14-digit) verified','11-column Pahani checked','Survey-to-LPM mapping','Part-B disputes','Prohibited property search','Land classification confirmed','ROR correction deadline (Apr 13 2026)']},
+    {t:'IGRS Portal',i:['EC 15-30yr obtained','Section 22-A check','Circle rate verified (post Apr 2025)','Parent deed certified copy','30yr link chain','e-Stamp authenticity']},
+    {t:'HMDA / TG-bPASS',i:['Jurisdiction confirmed','Layout approval','Land Use Certificate','Zoning compliance','Open space 15%','Infra mortgage deed','Site board displayed']},
+    {t:'TGRERA',i:['Registration number verified','QPR current','70% escrow','Promoter title on file','Agent registered','OC status']},
+    {t:'HYDRAA / FTL / Buffer',i:['FTL Map cross-referenced','Cadastral Map verified','Buffer 30m/200m check','FTL Final vs Preliminary','WALTA 2002','G.O. 111 check']},
+    {t:'Title & Registration',i:['30yr chain no gaps','Seller right confirmed','Coparcener consents (HUF)','Minor: court permission','POA registered','Succession certificate','Stamp duty correct','Dual-portal done']},
+    {t:'Litigation & Verification',i:['District Court search','High Court search','Revenue Tribunal search','Consumer forum check','Physical site visit done','Boundary verification vs FMB','Encroachment check']}
+  ];
+  let h = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><h2 style="font-family:var(--F);font-size:17px;font-weight:600;margin:0">Verification Checklist</h2><span id="checkCount" style="font-size:11px;color:#8BA89A">0/0</span></div><div style="height:4px;background:#E8E5DC;border-radius:2px;margin-bottom:14px"><div id="checkBar" style="height:4px;background:var(--G);border-radius:2px;width:0;transition:width .3s"></div></div>';
+  
+  let total = 0;
+  checks.forEach((sec,si) => {
+    h += `<div style="margin-bottom:14px"><div class="checklist-cat">${sec.t}</div>`;
+    sec.i.forEach((item,ii) => {
+      h += `<label class="check-item"><input type="checkbox" onchange="updateCheckCount()" data-check="1"> <span>${item}</span></label>`;
+      total++;
+    });
+    h += '</div>';
+  });
+  document.getElementById('checklistContent').innerHTML = h;
+  document.getElementById('checklistContent').dataset.total = total;
+  updateCheckCount();
+}
+
+function updateCheckCount() {
+  const total = parseInt(document.getElementById('checklistContent').dataset.total||0);
+  const done = document.querySelectorAll('#checklistContent input[type=checkbox]:checked').length;
+  document.getElementById('checkCount').textContent = done + '/' + total;
+  document.getElementById('checkBar').style.width = (total?(done/total)*100:0) + '%';
+}
+
+// ── INIT ──
+window.addEventListener('DOMContentLoaded', () => {
+  const saved = sessionStorage.getItem('organo_key');
+  if (saved) { API_KEY = saved; document.getElementById('apiModal').classList.add('hidden'); }
+  renderDocGuide();
+  renderChecklist();
+});
+</script>
+</body>
+</html>
