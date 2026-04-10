@@ -47,28 +47,10 @@ body{font-family:var(--FB);background:var(--BG);min-height:100vh;color:var(--G)}
 .check-item input{margin-top:2px;accent-color:var(--G)}
 .disclaimer{margin-top:24px;padding:10px 14px;background:rgba(27,46,35,.04);border-radius:8px;border:1px solid rgba(27,46,35,.08);font-size:9px;color:#8BA89A;line-height:1.7}
 .hidden{display:none!important}
-.api-modal{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:999}
-.api-modal-box{background:#fff;border-radius:16px;padding:32px;max-width:460px;width:90%}
-.api-input{width:100%;padding:10px 12px;border:1px solid #DDD8CE;border-radius:8px;font-family:var(--FB);font-size:13px;margin:12px 0}
 .step-num{min-width:20px;height:20px;border-radius:50%;background:var(--G);color:#fff;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0}
 </style>
 </head>
 <body>
-
-<!-- API KEY MODAL -->
-<div id="apiModal" class="api-modal">
-<div class="api-modal-box">
-  <div class="brand" style="margin-bottom:8px">ORGANO</div>
-  <h2 style="font-family:var(--F);font-size:22px;font-weight:600;color:var(--G);margin-bottom:4px">Legal Advisor Portal</h2>
-  <p style="font-size:12px;color:#8BA89A;line-height:1.6;margin-bottom:8px">Enter your Anthropic API key to get started. Get one at <a href="https://console.anthropic.com" target="_blank" style="color:var(--G2)">console.anthropic.com</a></p>
-  <input id="apiKeyInput" class="api-input" type="password" placeholder="sk-ant-api03-..." autocomplete="off">
-  <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#8BA89A;margin-bottom:12px;cursor:pointer">
-    <input type="checkbox" id="rememberKey" checked style="accent-color:var(--G)"> Remember for this session
-  </label>
-  <button onclick="saveApiKey()" class="btn" style="margin:0">Enter Portal</button>
-  <p id="apiError" style="color:#DC2626;font-size:11px;margin-top:8px" class="hidden"></p>
-</div>
-</div>
 
 <!-- HEADER -->
 <div class="header">
@@ -79,10 +61,7 @@ body{font-family:var(--FB);background:var(--BG);min-height:100vh;color:var(--G)}
       <h1 class="title">Legal Advisor</h1>
       <p class="subtitle">Land Due Diligence · Title Verification · JV Risk Assessment</p>
     </div>
-    <div style="display:flex;align-items:center;gap:8px">
-      <div id="trainingBadge" class="hidden" style="font-size:10px;color:#6BAE8A;background:rgba(107,174,138,.1);padding:4px 10px;border-radius:6px"></div>
-      <button onclick="API_KEY='';sessionStorage.removeItem('organo_key');document.getElementById('apiModal').classList.remove('hidden');" style="padding:4px 10px;border-radius:6px;border:1px solid #6BAE8A;background:transparent;color:#8AB89E;font-family:var(--FB);font-size:10px;font-weight:600;cursor:pointer">🔑 Change API Key</button>
-    </div>
+    <div id="trainingBadge" class="hidden" style="font-size:10px;color:#6BAE8A;background:rgba(107,174,138,.1);padding:4px 10px;border-radius:6px"></div>
   </div>
   <div class="tabs">
     <button class="tab active" onclick="showTab('upload')">Upload Documents</button>
@@ -100,7 +79,7 @@ body{font-family:var(--FB);background:var(--BG);min-height:100vh;color:var(--G)}
 <div class="card">
   <h2 style="font-family:var(--F);font-size:20px;font-weight:600;margin-bottom:4px">Upload Land Documents</h2>
   <p style="font-size:12px;color:#8BA89A;margin-bottom:14px">Upload all documents for the land parcel or JV deal. The AI identifies the state, applies regulations, and flags every pain point.</p>
-  
+
   <div class="upload-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
     <div style="font-size:48px;margin-bottom:8px;opacity:.7">📁</div>
     <div style="font-size:16px;font-weight:600">Drop documents here or click to browse</div>
@@ -108,12 +87,12 @@ body{font-family:var(--FB);background:var(--BG);min-height:100vh;color:var(--G)}
     <div style="font-size:11px;color:#8BA89A;margin-top:4px">No file limit. Large sets auto-batch for analysis.</div>
     <input type="file" id="fileInput" multiple accept=".pdf,.png,.jpg,.jpeg,.gif,.bmp,.tiff,.tif,.webp,.txt,.doc,.docx,.odt" style="display:none" onchange="handleFiles(this.files)">
   </div>
-  
+
   <div id="fileList" style="margin-top:10px;display:flex;flex-wrap:wrap;gap:5px"></div>
   <div id="fileCount" style="font-size:11px;color:#8BA89A;margin-top:6px" class="hidden"></div>
-  
+
   <button class="btn" id="analyzeBtn" disabled onclick="runAnalysis()">Analyze Documents</button>
-  
+
   <div id="progressBox" class="hidden" style="margin-top:16px;text-align:center">
     <div class="spinner"></div>
     <div id="progressText" style="font-size:12px;font-weight:600"></div>
@@ -140,10 +119,9 @@ body{font-family:var(--FB);background:var(--BG);min-height:100vh;color:var(--G)}
 
 <script>
 // ═══════════════════════════════════════════════
-// ORGANO AI LEGAL ADVISOR — STANDALONE ENGINE
+// ORGANO AI LEGAL ADVISOR — VERCEL EDITION
 // ═══════════════════════════════════════════════
 
-let API_KEY = '';
 let uploadedFiles = [];
 let analysisResult = null;
 let feedbackLog = [];
@@ -216,19 +194,6 @@ Be the lawyer who SAVES the founder from a bad deal. Flag aggressively. Flag ABS
 
 const EXTRACT_PROMPT = `Extract all factual legal data from these documents for Organo. Be exhaustive.
 Return ONLY valid JSON: {"files":["..."],"state":"...","location":{"district":"...","mandal":"...","village":"..."},"land":{"survey_nos":"...","extent":"...","classification":"...","owners":"..."},"findings":[{"category":"...","detail":"...","severity":"HIGH|MEDIUM|LOW","source":"..."}],"encumbrances":["..."],"title_chain":"...","missing":["..."],"red_flags":["..."]}`;
-
-// ── API KEY ──
-function saveApiKey() {
-  const key = document.getElementById('apiKeyInput').value.trim();
-  if (!key || key.length < 10) {
-    document.getElementById('apiError').textContent = 'Please enter a valid API key';
-    document.getElementById('apiError').classList.remove('hidden');
-    return;
-  }
-  API_KEY = key;
-  if (document.getElementById('rememberKey').checked) sessionStorage.setItem('organo_key', key);
-  document.getElementById('apiModal').classList.add('hidden');
-}
 
 // ── FILE HANDLING ──
 function getFileType(f) {
@@ -312,34 +277,34 @@ function estimateTokens(b) {
   return 1600;
 }
 
-// ── API CALL ──
+// ── API CALL (via Vercel serverless function) ──
 async function callAPI(system, content) {
-  const r = await fetch('https://api.anthropic.com/v1/messages', {
-    method:'POST', headers:{'Content-Type':'application/json','x-api-key':API_KEY,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-    body: JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:4096,system,messages:[{role:'user',content}]})
+  const r = await fetch('/api/analyze', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ system, content })
   });
-  if (!r.ok) { const e = await r.json().catch(()=>({})); throw new Error(e.error?.message || 'API '+r.status); }
-  const raw = (await r.json()).content.filter(b=>b.type==='text').map(b=>b.text).join('\n');
-  return raw.replace(/```json/g,'').replace(/```/g,'').trim();
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.error || 'API error ' + r.status);
+  return data.result;
 }
 
 // ── ANALYSIS ENGINE ──
 async function runAnalysis() {
   if (!uploadedFiles.length) return;
-  if (!API_KEY) { document.getElementById('apiModal').classList.remove('hidden'); return; }
-  
+
   const btn = document.getElementById('analyzeBtn');
   const prog = document.getElementById('progressBox');
   const progText = document.getElementById('progressText');
   const errBox = document.getElementById('errorBox');
-  
+
   btn.disabled = true; prog.classList.remove('hidden'); errBox.classList.add('hidden');
   dz.classList.add('disabled');
-  
+
   try {
     const TOKEN_BUDGET = 120000;
     const batches = []; let cur = [], curT = 0;
-    
+
     for (let i = 0; i < uploadedFiles.length; i++) {
       progText.textContent = 'Reading ' + (i+1) + '/' + uploadedFiles.length + ': ' + uploadedFiles[i].name;
       const bl = await fileToBlocks(uploadedFiles[i]);
@@ -348,10 +313,10 @@ async function runAnalysis() {
       cur.push(...bl); curT += t;
     }
     if (cur.length) batches.push(cur);
-    
+
     const trainingCtx = feedbackLog.length ? '\n\nTRAINING FROM PAST ANALYSES:\n' + feedbackLog.slice(-5).map(f=>'- Verdict: '+f.verdict+'. Rating: '+f.accuracy+(f.missed?'. Missed: '+f.missed:'')).join('\n') : '';
     const fullPrompt = BRAIN + trainingCtx;
-    
+
     if (batches.length === 1) {
       progText.textContent = 'Senior legal advisor analyzing ' + uploadedFiles.length + ' document' + (uploadedFiles.length>1?'s':'') + '...';
       batches[0].push({type:'text',text:'Analyze ALL above. Return ONLY JSON.'});
@@ -367,17 +332,13 @@ async function runAnalysis() {
       progText.textContent = 'Pass 2/2: Synthesizing ' + batches.length + ' batches...';
       analysisResult = JSON.parse(await callAPI(fullPrompt, [{type:'text',text:'Findings from '+batches.length+' batches ('+uploadedFiles.length+' files):\n\n'+JSON.stringify(findings,null,2)+'\n\nSynthesize into final report. Return ONLY JSON.'}]));
     }
-    
+
     renderReport(analysisResult);
     showTab('report');
   } catch(e) {
     console.error(e);
     errBox.innerHTML = '<strong>Error:</strong> ' + e.message;
     errBox.classList.remove('hidden');
-    if (e.message.includes('401') || e.message.includes('auth') || e.message.includes('api-key') || e.message.includes('api_key')) {
-      API_KEY = ''; sessionStorage.removeItem('organo_key');
-      document.getElementById('apiModal').classList.remove('hidden');
-    }
   } finally {
     btn.disabled = false; prog.classList.add('hidden'); dz.classList.remove('disabled');
   }
@@ -401,22 +362,18 @@ function renderReport(d) {
   const sevC = {CRITICAL:'#EF4444',HIGH:'#F97316',MEDIUM:'#EAB308',LOW:'#22C55E'};
   const sevBg = {CRITICAL:'#FEF2F2',HIGH:'#FFF7ED',MEDIUM:'#FEFCE8',LOW:'#F0FDF4'};
   const sevTxt = {CRITICAL:'#991B1B',HIGH:'#9A3412',MEDIUM:'#854D0E',LOW:'#166534'};
-  
+
   let h = '';
-  
-  // VERDICT
+
   h += `<div class="verdict-banner" style="background:${color}"><div><div style="font-size:9px;opacity:.6;text-transform:uppercase;letter-spacing:2px">Founder Decision</div><div style="font-family:var(--F);font-size:28px;font-weight:600;line-height:1.2">${go.verdict||'PENDING'}</div><div style="font-size:12px;opacity:.85;margin-top:4px;max-width:500px">${go.one_liner||''}</div></div><div style="text-align:center"><div style="font-size:42px;opacity:.3;font-weight:800;line-height:1">${rs.overall||'?'}</div><div style="font-size:9px;opacity:.5;text-transform:uppercase;letter-spacing:1px">Risk Score</div></div></div>`;
-  
-  // LAND SUMMARY
+
   h += `<div class="sec"><div class="sec-title">Land Summary · ${d.state_detected||''} · ${d.deal_type||''}</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 20px;font-size:12px">`;
   [['Location',[(loc.district||''),(loc.mandal||''),(loc.village||'')].filter(Boolean).join(', ')],['Survey No(s)',loc.survey_nos],['Extent',ls.extent],['Classification',ls.classification],['Owner(s)',ls.current_owners],['Market Value',ls.market_value_estimate]].forEach(([l,v])=>{if(v)h+=`<div><span style="font-size:10px;color:#8BA89A">${l}: </span><span style="font-weight:500">${v}</span></div>`;});
   h += '</div></div>';
-  
-  // TITLE STATUS
+
   const tc = ts.status==='Clear'?'#16A34A':(ts.status==='High Risk'||ts.status==='Critical')?'#DC2626':'#CA8A04';
   h += `<div class="sec" style="border-left:4px solid ${tc}"><div class="sec-title">Title Status</div><span style="display:inline-block;padding:3px 12px;border-radius:6px;background:${tc};color:#fff;font-size:11px;font-weight:700;margin-bottom:6px">${ts.status||'Unknown'}</span><div style="font-size:12px;line-height:1.6">${ts.explanation||'Insufficient information.'}</div></div>`;
-  
-  // REGULATORY FLAGS
+
   h += '<div class="sec"><div class="sec-title">Regulatory Compliance</div><div class="flag-grid">';
   Object.entries(rf).forEach(([k,v]) => {
     const good = v===true||v==='Clear'||v==='Valid'||v==='None'||v==='NA';
@@ -426,23 +383,20 @@ function renderReport(d) {
     h += `<div class="flag-item"><div style="font-size:8px;color:#8BA89A;text-transform:uppercase;letter-spacing:.8px">${label}</div><div style="font-size:11px;font-weight:700;color:${c}">${v===true?'Yes':v===false?'No':v==null?'Unknown':v}</div></div>`;
   });
   h += '</div></div>';
-  
-  // PAIN POINTS
+
   h += `<div class="sec"><div class="sec-title">Pain Points (${pains.length})</div>`;
   if (!pains.length) h += '<div style="font-size:12px;color:#8BA89A">No issues found.</div>';
   pains.forEach((p,i) => {
     h += `<div class="pain" style="background:${sevBg[p.severity]||'#FEFCE8'};border-color:${sevC[p.severity]||'#EAB308'}" onclick="this.querySelector('.pain-detail').classList.toggle('hidden')"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px"><div style="flex:1"><div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap;margin-bottom:3px"><span class="pain-badge" style="background:${sevC[p.severity]}">${p.severity}</span>${p.blocking?'<span class="pain-badge" style="background:#1E1B4B">BLOCKS DEAL</span>':''}<span style="font-size:9px;color:#8BA89A">${p.category||''}</span></div><div style="font-size:12.5px;font-weight:600;color:${sevTxt[p.severity]};line-height:1.45">${p.issue}</div></div><span style="font-size:12px;color:${sevTxt[p.severity]}">▾</span></div><div class="pain-detail hidden" style="margin-top:10px;padding-top:10px;border-top:1px solid ${sevC[p.severity]}22;display:grid;gap:6px">${p.legal_basis?`<div style="font-size:10px;color:${sevTxt[p.severity]}"><strong>Legal basis:</strong> ${p.legal_basis}</div>`:''}${p.what_happens_if_ignored?`<div style="font-size:10px;color:#DC2626"><strong>If ignored:</strong> ${p.what_happens_if_ignored}</div>`:''}${p.fix?`<div style="font-size:10px;color:#166534"><strong>Fix:</strong> ${p.fix}</div>`:''}${p.time_to_fix?`<div style="font-size:10px;color:#8BA89A"><strong>Timeline:</strong> ${p.time_to_fix}</div>`:''}</div></div>`;
   });
   h += '</div>';
-  
-  // JV RISKS
+
   if (jv.length) {
     h += '<div class="sec"><div class="sec-title">Joint Venture Risks</div>';
     jv.forEach(r => { h += `<div style="background:#FFF7ED;border:1px solid #FDBA74;border-radius:8px;padding:10px;margin-bottom:4px"><div style="font-size:12px;font-weight:600;color:#9A3412">${r.risk}</div><div style="font-size:10px;color:#EA580C;margin-top:2px">Impact: ${r.impact}</div><div style="font-size:10px;color:#166534;margin-top:2px">Mitigation: ${r.mitigation}</div></div>`; });
     h += '</div>';
   }
-  
-  // LITIGATION CHECK
+
   if (d.litigation_check) {
     const lc = d.litigation_check;
     h += `<div class="sec" style="border-left:4px solid ${lc.lis_pendens?'#DC2626':lc.court_search_provided?'#16A34A':'#CA8A04'}"><div class="sec-title">Litigation Check</div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">`;
@@ -454,15 +408,13 @@ function renderReport(d) {
     if (lc.prompt) h += `<div style="font-size:11px;color:#9A3412;background:#FFF7ED;padding:8px;border-radius:6px;border-left:3px solid #F97316">${lc.prompt}</div>`;
     h += '</div>';
   }
-  
-  // PHYSICAL VERIFICATION
+
   if (d.physical_verification) {
     const pv = d.physical_verification;
     const ok = pv.site_visit_evidenced;
     h += `<div class="sec" style="border-left:4px solid ${ok?'#16A34A':'#CA8A04'}"><div class="sec-title">Physical Verification</div><div style="font-size:11px;color:${ok?'#166534':'#9A3412'};padding:6px 10px;border-radius:6px;background:${ok?'#F0FDF4':'#FFF7ED'};border:1px solid ${ok?'#86EFAC':'#FDBA74'}">${ok?'Site visit evidence found.':'No site visit evidence. '+pv.prompt}</div></div>`;
   }
-  
-  // SELLER CAPACITY
+
   if (d.seller_capacity) {
     const sc = d.seller_capacity;
     h += '<div class="sec"><div class="sec-title">Seller Capacity to Transact</div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:6px">';
@@ -474,8 +426,7 @@ function renderReport(d) {
     if (sc.notes) h += `<div style="font-size:11px;line-height:1.5">${sc.notes}</div>`;
     h += '</div>';
   }
-  
-  // TIME-SENSITIVE
+
   if (d.time_sensitive_items?.length) {
     h += '<div class="sec" style="border-left:4px solid #EA580C"><div class="sec-title">Time-Sensitive Items</div>';
     d.time_sensitive_items.forEach(t => {
@@ -483,8 +434,7 @@ function renderReport(d) {
     });
     h += '</div>';
   }
-  
-  // TAX
+
   if (d.tax_implications) {
     const tx = d.tax_implications;
     h += '<div class="sec"><div class="sec-title">Tax and Cost Implications</div><div style="display:grid;gap:4px;font-size:11px">';
@@ -494,8 +444,7 @@ function renderReport(d) {
     if (tx.capital_gains_risk) h += `<div><span style="color:#8BA89A">Capital Gains: </span>${tx.capital_gains_risk}</div>`;
     h += '</div></div>';
   }
-  
-  // DOCUMENTS REQUIRED
+
   h += '<div class="sec"><div class="sec-title">Documents Required</div>';
   [['Critical — Deal cannot proceed without','#DC2626',docReq.critical],['Important — Obtain before signing','#CA8A04',docReq.important],['Recommended — For completeness','#16A34A',docReq.recommended]].forEach(([title,color,docs])=>{
     if (!docs?.length) return;
@@ -507,8 +456,7 @@ function renderReport(d) {
     });
   });
   h += '</div>';
-  
-  // RISK SCORES
+
   h += '<div class="sec"><div class="sec-title">Risk Analysis</div><div style="display:flex;gap:12px;flex-wrap:wrap">';
   [['Legal',rs.legal],['Compliance',rs.compliance],['Financial',rs.financial]].forEach(([l,s])=>{
     const c = s>70?'#DC2626':s>40?'#CA8A04':'#16A34A';
@@ -517,8 +465,7 @@ function renderReport(d) {
   h += '</div>';
   if (d.stamp_duty_notes) h += `<div style="font-size:10px;color:#8BA89A;margin-top:8px;font-style:italic">Stamp duty: ${d.stamp_duty_notes}</div>`;
   h += '</div>';
-  
-  // PREDICTED RISKS
+
   h += '<div class="sec"><div class="sec-title">Predicted Risks</div><div style="display:flex;gap:16px;flex-wrap:wrap;justify-content:center;margin:4px 0">';
   [['Ownership Dispute',pr.ownership_dispute_pct],['Approval Delay',pr.approval_delay_pct],['Legal Complication',pr.legal_complication_pct]].forEach(([l,v])=>{
     const pct = v||0; const c = pct>60?'#DC2626':pct>30?'#CA8A04':'#16A34A';
@@ -527,17 +474,15 @@ function renderReport(d) {
   h += '</div>';
   if (pr.assumptions) h += `<div style="font-size:10px;color:#8BA89A;margin-top:6px;font-style:italic">Assumptions: ${pr.assumptions}</div>`;
   h += '</div>';
-  
-  // FINAL RECOMMENDATION
+
   h += `<div class="sec" style="border-left:4px solid ${color}"><div class="sec-title">Final Recommendation</div><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span style="padding:4px 16px;border-radius:8px;background:${color};color:#fff;font-size:13px;font-weight:700">${fr.verdict||go.verdict||''}</span></div>`;
   (fr.points||[]).forEach((pt,i) => {
     h += `<div style="display:flex;gap:8px;align-items:flex-start;font-size:12px;margin-bottom:4px"><span class="step-num">${i+1}</span><span style="line-height:1.5">${pt}</span></div>`;
   });
   h += '</div>';
-  
-  // FEEDBACK
+
   h += `<div class="sec"><div class="sec-title">Train the Model — Your Feedback</div><div style="font-size:11px;color:#8BA89A;margin-bottom:10px">Your feedback trains future analyses. Was this assessment accurate?</div><div id="feedbackArea" style="display:flex;gap:6px;margin-bottom:12px"><button class="feedback-btn" onclick="selectFeedback('Accurate')" style="color:#16A34A">Accurate</button><button class="feedback-btn" onclick="selectFeedback('Partially')" style="color:#CA8A04">Partially</button><button class="feedback-btn" onclick="selectFeedback('Missed Issues')" style="color:#DC2626">Missed Issues</button></div><div id="feedbackExtra" class="hidden"><div style="font-size:10px;font-weight:600;margin-bottom:4px">What did the AI miss?</div><textarea id="feedbackMissed" style="width:100%;min-height:60px;border-radius:8px;border:1px solid #DDD8CE;padding:8px;font-family:var(--FB);font-size:11px;resize:vertical;box-sizing:border-box" placeholder="Describe issues the AI should have caught..."></textarea></div><div style="margin-top:8px"><div style="font-size:10px;font-weight:600;margin-bottom:4px">Additional notes</div><textarea id="feedbackNotes" style="width:100%;min-height:40px;border-radius:8px;border:1px solid #DDD8CE;padding:8px;font-family:var(--FB);font-size:11px;resize:vertical;box-sizing:border-box" placeholder="What your lawyer found, final decision..."></textarea></div><button id="feedbackSubmitBtn" class="btn" style="margin-top:8px;background:#C6CFC9" disabled onclick="submitFeedback()">Submit Feedback</button><div id="feedbackSuccess" class="hidden" style="background:#F0FDF4;border:1px solid #86EFAC;border-radius:10px;padding:14px;font-size:12px;color:#166534;text-align:center;margin-top:8px">Feedback recorded. This will improve future analyses.</div></div>`;
-  
+
   document.getElementById('reportContent').innerHTML = h;
 }
 
@@ -564,7 +509,6 @@ function submitFeedback() {
   document.getElementById('feedbackArea').classList.add('hidden');
   document.getElementById('feedbackExtra').classList.add('hidden');
   document.getElementById('feedbackSuccess').classList.remove('hidden');
-  document.querySelector('[onclick="showTab(\'upload\')"]').nextElementSibling.nextElementSibling;
   const badge = document.getElementById('trainingBadge');
   badge.classList.remove('hidden');
   badge.textContent = feedbackLog.length + ' training feedback' + (feedbackLog.length>1?'s':'') + ' logged';
@@ -611,7 +555,7 @@ function renderChecklist() {
     {t:'Litigation & Verification',i:['District Court search','High Court search','Revenue Tribunal search','Consumer forum check','Physical site visit done','Boundary verification vs FMB','Encroachment check']}
   ];
   let h = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><h2 style="font-family:var(--F);font-size:17px;font-weight:600;margin:0">Verification Checklist</h2><span id="checkCount" style="font-size:11px;color:#8BA89A">0/0</span></div><div style="height:4px;background:#E8E5DC;border-radius:2px;margin-bottom:14px"><div id="checkBar" style="height:4px;background:var(--G);border-radius:2px;width:0;transition:width .3s"></div></div>';
-  
+
   let total = 0;
   checks.forEach((sec,si) => {
     h += `<div style="margin-bottom:14px"><div class="checklist-cat">${sec.t}</div>`;
@@ -635,8 +579,6 @@ function updateCheckCount() {
 
 // ── INIT ──
 window.addEventListener('DOMContentLoaded', () => {
-  const saved = sessionStorage.getItem('organo_key');
-  if (saved) { API_KEY = saved; document.getElementById('apiModal').classList.add('hidden'); }
   renderDocGuide();
   renderChecklist();
 });
