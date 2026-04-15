@@ -10,10 +10,19 @@ function convertContentForGemini(system, content) {
     for (const block of content) {
       if (block.type === 'text') {
         parts.push({ text: block.text });
+      } else if (block.type === 'file_uri' && block.fileUri) {
+        // Reference to a file previously uploaded to Gemini File API
+        parts.push({
+          fileData: {
+            mimeType: block.mimeType,
+            fileUri: block.fileUri,
+          },
+        });
       } else if (
         (block.type === 'document' || block.type === 'image') &&
         block.source?.type === 'base64'
       ) {
+        // Inline data (for small files only)
         parts.push({
           inlineData: {
             mimeType: block.source.media_type,

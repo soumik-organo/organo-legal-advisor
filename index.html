@@ -254,14 +254,41 @@ async function readDocx(f) {
   catch(e) { return '[Cannot extract ' + f.name + '. Convert to PDF.]'; }
 }
 
+// Upload a single file to Gemini File API via our serverless endpoint
+async function uploadToGemini(f, mimeType) {
+  const base64 = await toB64(f);
+  const r = await fetch('/api/upload-file', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ base64, mimeType, displayName: f.name })
+  });
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.error || 'Upload failed for ' + f.name);
+  return data;
+}
+
+// Files >3 MB use Gemini File API (via upload-file), smaller go inline.
+// This keeps every Vercel request under the 4.5 MB body limit.
+const INLINE_LIMIT = 3 * 1024 * 1024;
+
 async function fileToBlocks(f) {
   const ft = getFileType(f), bl = [];
   if (ft==='pdf') {
-    bl.push({type:'document',source:{type:'base64',media_type:'application/pdf',data:await toB64(f)}});
+    if (f.size > INLINE_LIMIT) {
+      const up = await uploadToGemini(f, 'application/pdf');
+      bl.push({type:'file_uri', fileUri: up.fileUri, mimeType: up.mimeType});
+    } else {
+      bl.push({type:'document',source:{type:'base64',media_type:'application/pdf',data:await toB64(f)}});
+    }
     bl.push({type:'text',text:'[PDF: '+f.name+' '+fmtSz(f.size)+']'});
   } else if (ft==='image') {
     const mt = f.type==='image/png'?'image/png':f.type==='image/gif'?'image/gif':f.type==='image/webp'?'image/webp':'image/jpeg';
-    bl.push({type:'image',source:{type:'base64',media_type:mt,data:await toB64(f)}});
+    if (f.size > INLINE_LIMIT) {
+      const up = await uploadToGemini(f, mt);
+      bl.push({type:'file_uri', fileUri: up.fileUri, mimeType: up.mimeType});
+    } else {
+      bl.push({type:'image',source:{type:'base64',media_type:mt,data:await toB64(f)}});
+    }
     bl.push({type:'text',text:'[Scan: '+f.name+' — OCR everything: text, stamps, seals, survey numbers, handwritten notes, signatures]'});
   } else if (ft==='docx'||ft==='doc'||ft==='odt') {
     bl.push({type:'text',text:'--- '+f.name+' ---\n'+(await readDocx(f))});
@@ -274,6 +301,7 @@ async function fileToBlocks(f) {
 function estimateTokens(b) {
   if (b.type==='text') return Math.ceil((b.text||'').length/4);
   if (b.type==='document') return Math.ceil((b.source?.data||'').length*.75/4)+500;
+  if (b.type==='file_uri') return 5000; // average page count guess for uploaded PDFs
   return 1600;
 }
 
@@ -284,7 +312,13 @@ async function callAPI(system, content) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ system, content })
   });
-  const data = await r.json();
+  const txt = await r.text();
+  let data;
+  try { data = JSON.parse(txt); }
+  catch(e) {
+    if (r.status === 413) throw new Error('Request too large. Try fewer documents per analysis.');
+    throw new Error('Server error ' + r.status + ': ' + txt.slice(0, 200));
+  }
   if (!r.ok) throw new Error(data.error || 'API error ' + r.status);
   return data.result;
 }
