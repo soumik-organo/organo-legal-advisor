@@ -6,6 +6,8 @@
 <title>Organo Legal Advisor</title>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Source+Serif+4:wght@400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.8.0/mammoth.browser.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+<script src="https://unpkg.com/tesseract.js@5.1.0/dist/tesseract.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{--G:#1B2E23;--G2:#2D5A3F;--BG:#F5F2EC;--FB:'Outfit',sans-serif;--F:'Source Serif 4','Georgia',serif}
@@ -64,6 +66,14 @@ body{font-family:var(--FB);background:var(--BG);min-height:100vh;color:var(--G)}
 .tri button.sel-u{background:#CA8A04;color:#fff;border-color:#CA8A04}
 .cond-hide{display:none}
 .hdr-note{font-size:11px;color:#8BA89A;background:#F7F6F3;padding:8px 12px;border-radius:8px;margin-bottom:14px;border-left:3px solid var(--G2);line-height:1.5}
+.auto-filled{background:#ECFDF5!important;border-color:#16A34A!important}
+.auto-filled::after{content:"✓ auto"}
+.ex-prog{background:#F0FDF4;border:1px solid #86EFAC;border-radius:8px;padding:10px;font-size:11px;color:#166534;margin-top:10px}
+.ex-doc{display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:#FAF9F6;border:1px solid #E8E5DC;border-radius:6px;margin-bottom:4px;font-size:11px}
+.ex-doc .type{font-size:9px;background:var(--G);color:#fff;padding:2px 6px;border-radius:4px;font-weight:700}
+.ex-field{display:inline-block;background:#ECFDF5;border:1px solid #86EFAC;color:#166534;padding:2px 8px;border-radius:4px;font-size:10px;margin:2px}
+.portal-link{display:flex;align-items:center;gap:8px;padding:10px 12px;border:1px solid #DDD8CE;border-radius:8px;text-decoration:none;color:var(--G);font-size:12px;font-weight:600;background:#FAF9F6;transition:all .15s}
+.portal-link:hover{background:#fff;border-color:var(--G2);box-shadow:0 2px 8px rgba(0,0,0,.04)}
 </style>
 </head>
 <body>
@@ -99,6 +109,28 @@ body{font-family:var(--FB);background:var(--BG);min-height:100vh;color:var(--G)}
   <div class="hdr-note"><strong>How to use:</strong> Your land & legal team reviews documents and fills this form. Every field has a legal rule behind it. Output matches the AI-mode report format. Save time by only filling what's relevant — skip-to-unknown is fine and is flagged as a risk.</div>
 
   <form id="manualForm" onsubmit="event.preventDefault();processManual()">
+
+  <!-- 0. AUTO-FILL FROM DOCUMENTS (OCR + Regex) -->
+  <div class="form-sec" style="border:2px solid #2D5A3F;background:linear-gradient(135deg,#fff,#F0FDF4)">
+    <div class="form-sec-title"><span class="num">⚡</span>Auto-Fill from Documents</div>
+    <div class="hdr-note">Upload your legal docs → OCR extracts text → 30+ regex patterns identify survey nos, extent, owners, EC period, RERA, GPA, NALA, stamp duty, Section 22-A etc → form below auto-fills. You review & submit. <strong>Runs 100% in your browser. Zero API cost.</strong></div>
+    <input type="file" id="extractInput" multiple accept=".pdf,.png,.jpg,.jpeg,.tiff,.tif,.webp,.bmp" hidden onchange="runExtraction(this.files)">
+    <div class="upload-zone" id="extractZone" onclick="document.getElementById('extractInput').click()" style="padding:20px">
+      <div style="font-size:32px;margin-bottom:4px;opacity:.7">📥</div>
+      <div style="font-size:14px;font-weight:600">Drop documents to auto-extract</div>
+      <div style="font-size:10px;color:#6B8A7A;margin-top:4px">PDF (digital or scanned) · PNG · JPG · TIFF</div>
+      <div style="font-size:9px;color:#8BA89A;margin-top:2px">First OCR run downloads ~10MB language data (one-time, cached)</div>
+    </div>
+    <div id="extractProgress" class="hidden"></div>
+    <div id="extractResults" class="hidden" style="margin-top:10px"></div>
+  </div>
+
+  <!-- 0b. PORTAL QUICK LOOKUP -->
+  <div class="form-sec" style="border:2px solid #1B2E23;background:linear-gradient(135deg,#fff,#F7F6F3)">
+    <div class="form-sec-title"><span class="num">🔗</span>Portal Quick Lookup</div>
+    <div class="hdr-note">One-click jump to official portals for verification. Telangana portals require login/captcha — these links save navigation time. Cross-check auto-extracted data here.</div>
+    <div id="portalLinks" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px"></div>
+  </div>
 
   <!-- 1. BASIC INFO -->
   <div class="form-sec">
@@ -963,6 +995,396 @@ function submitFeedback() {
   badge.textContent = feedbackLog.length + ' training feedback' + (feedbackLog.length>1?'s':'') + ' logged';
 }
 
+// ═══════════════════════════════════════════════
+// DOCUMENT EXTRACTION — Client-side OCR + Regex
+// ═══════════════════════════════════════════════
+// PDF.js worker setup
+if (window.pdfjsLib) {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+}
+
+let ocrWorker = null;
+async function getOCRWorker() {
+  if (ocrWorker) return ocrWorker;
+  const prog = document.getElementById('extractProgress');
+  prog.innerHTML = '<div class="ex-prog">Initialising OCR engine (downloading language data, ~10MB, one-time)...</div>';
+  prog.classList.remove('hidden');
+  ocrWorker = await Tesseract.createWorker('eng', 1, {
+    logger: m => {
+      if (m.status && m.progress !== undefined) {
+        prog.innerHTML = `<div class="ex-prog">OCR: ${m.status} ${Math.round(m.progress*100)}%</div>`;
+      }
+    }
+  });
+  return ocrWorker;
+}
+
+async function extractPDFText(f) {
+  const ab = await f.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({data: ab}).promise;
+  let text = '';
+  for (let i=1; i<=pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    text += content.items.map(it => it.str).join(' ') + '\n';
+  }
+  return text;
+}
+
+async function ocrImage(blob) {
+  const w = await getOCRWorker();
+  const { data } = await w.recognize(blob);
+  return data.text;
+}
+
+// Render PDF page to canvas then OCR (for scanned PDFs)
+async function ocrPDFPages(f) {
+  const ab = await f.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({data: ab}).promise;
+  let text = '';
+  const maxPages = Math.min(pdf.numPages, 15); // cap for speed
+  for (let i=1; i<=maxPages; i++) {
+    const page = await pdf.getPage(i);
+    const viewport = page.getViewport({scale: 2.0});
+    const canvas = document.createElement('canvas');
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    await page.render({canvasContext: canvas.getContext('2d'), viewport}).promise;
+    const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
+    text += await ocrImage(blob) + '\n';
+  }
+  return text;
+}
+
+function classifyDoc(t) {
+  const s = t.toLowerCase();
+  if (/encumbrance\s*certificate|nil\s*encumbrance/.test(s)) return 'EC';
+  if (/sale\s*deed|deed\s*of\s*sale|vendor|vendee/.test(s)) return 'Sale Deed';
+  if (/pahani|pattadar\s*pass\s*book|\bppb\b|1\s*b\b|ror\b/.test(s)) return 'Pahani/PPB/ROR';
+  if (/tgrera|ts\s*rera|rera\s*registration/.test(s)) return 'TGRERA Cert';
+  if (/nala|non[\-\s]?agricultural\s*land\s*assessment/.test(s)) return 'NALA Order';
+  if (/general\s*power\s*of\s*attorney|\bgpa\b/.test(s)) return 'GPA';
+  if (/joint\s*(venture|development)\s*agreement|\bjda\b|\bjv\b/.test(s)) return 'JV/JDA';
+  if (/layout\s*(approval|permit)|hmda|dtcp|bda/.test(s)) return 'Layout Approval';
+  if (/court|suit|plaintiff|decree|writ\s*petition/.test(s)) return 'Litigation';
+  if (/section\s*22[\-\s]*a/.test(s)) return 'Sec 22-A Doc';
+  if (/bhu\s*bharati|bhudhaar/.test(s)) return 'Bhu Bharati';
+  return 'Unknown';
+}
+
+function parseYearFromDate(d) {
+  if (!d) return null;
+  const m = d.match(/(\d{4})|(\d{2})\s*$/);
+  if (m && m[1]) return parseInt(m[1], 10);
+  if (m && m[2]) { const y = parseInt(m[2], 10); return y > 50 ? 1900+y : 2000+y; }
+  return null;
+}
+
+// 30+ regex extractors
+function parseFields(rawText) {
+  const t = rawText.replace(/\s+/g, ' ');
+  const f = {};
+  const grab = re => { const m = t.match(re); return m ? m[1].trim() : null; };
+
+  // Survey numbers (handles 123, 123/A, 123/2, multiple)
+  const sur = grab(/Survey\s*(?:No\.?|Number|Nos?\.?)?[:\s]*((?:\d+(?:\s*[\/\-]\s*[0-9A-Z]+)?\s*[,&and ]*)+)/i);
+  if (sur) f.surveyNos = sur.replace(/\s+/g,' ').replace(/,$/,'');
+
+  // Extent
+  const extM = t.match(/(?:Extent|Area|admeasuring)[:\s]*(?:of\s+)?([\d.]+)\s*(Acres?|Ac\.?|Guntas?|Sq\.?\s*(?:yards?|metres?|mts?|ft))(?:\s*[-and,]+\s*([\d.]+)\s*(Guntas?|Sq[^\s]*))?/i);
+  if (extM) {
+    f.extent = extM[1] + ' ' + extM[2] + (extM[3] ? ' ' + extM[3] + ' ' + extM[4] : '');
+    // try to compute sqm
+    const ac = /acre/i.test(extM[2]) ? parseFloat(extM[1]) : 0;
+    const sqm = /sq\.?\s*m/i.test(extM[2]) ? parseFloat(extM[1]) : 0;
+    const sqy = /sq\.?\s*y/i.test(extM[2]) ? parseFloat(extM[1]) : 0;
+    f.extentSqm = Math.round(ac*4046.86 + sqm + sqy*0.836);
+  }
+
+  // Location (only set if matched)
+  const vil = grab(/Village[:\s]+([A-Za-z][A-Za-z\s]+?)(?:,|\s+Mandal|\s+Taluk|\s+Hobli|\s+District|\s+Tehsil)/i);
+  if (vil) f.village = vil;
+  const man = grab(/(?:Mandal|Taluk|Tehsil|Hobli)[:\s]+([A-Za-z][A-Za-z\s]+?)(?:,|\s+District|\s+Revenue)/i);
+  if (man) f.mandal = man;
+  const dis = grab(/District[:\s]+([A-Za-z][A-Za-z\s]+?)(?:,|\s+State|\s+Telangana|\s+Andhra|\s+Karnataka)/i);
+  if (dis) f.district = dis;
+
+  // State
+  if (/telangana/i.test(t)) f.state = 'Telangana';
+  else if (/andhra\s*pradesh/i.test(t)) f.state = 'Andhra Pradesh';
+  else if (/karnataka/i.test(t)) f.state = 'Karnataka';
+  else if (/tamil\s*nadu/i.test(t)) f.state = 'Tamil Nadu';
+  else if (/maharashtra/i.test(t)) f.state = 'Maharashtra';
+
+  // Owner
+  const own = grab(/(?:Vendor|Owner|Pattadar|Grantor|Seller)(?:\(s\))?[:\s]+(?:Sri|Smt|Mr|Ms|Mrs)?\.?\s*([A-Z][A-Za-z\s.]+?)(?:,|\s+S\/o|\s+W\/o|\s+D\/o|\s+aged|\s+hereinafter)/i);
+  if (own) f.currentOwners = own;
+
+  // Consideration / Value
+  const agrM = t.match(/(?:consideration|sale\s*price|total\s*value|agreement\s*value)[:\s]*(?:of\s+)?(?:Rs\.?|₹|INR|rupees)\s*([\d,]+)/i);
+  if (agrM) f.agreementValue = parseInt(agrM[1].replace(/,/g,''), 10);
+  const crM = t.match(/(?:circle|sro|market|guidance)\s*(?:rate|value)[:\s]*(?:Rs\.?|₹|INR)?\s*([\d,]+)/i);
+  if (crM) f.circleRate = parseInt(crM[1].replace(/,/g,''), 10);
+
+  // Stamp duty paid
+  const stp = t.match(/stamp\s*duty[:\s]*(?:paid\s+)?(?:Rs\.?|₹|INR)?\s*([\d,]+)/i);
+  if (stp) f._stampDutyPaid = parseInt(stp[1].replace(/,/g,''), 10);
+
+  // Encumbrance / EC
+  if (/nil\s*encumbrance|no\s*encumbrance|no\s*entries\s*found/i.test(t)) {
+    f.ecHasGaps = false;
+    f.ecLisPendens = false;
+  }
+  if (/lis\s*pendens|pending\s*(suit|litigation|case)/i.test(t)) f.ecLisPendens = true;
+
+  // EC period
+  const ecm = t.match(/(?:from|period|covering)[:\s]*(\d{1,2}[-\/.]\d{1,2}[-\/.]\d{2,4})\s*(?:to|upto|till)\s*(\d{1,2}[-\/.]\d{1,2}[-\/.]\d{2,4})/i);
+  if (ecm) {
+    const y1 = parseYearFromDate(ecm[1]);
+    const y2 = parseYearFromDate(ecm[2]);
+    if (y1 && y2) f.ecYears = Math.max(0, y2 - y1);
+  }
+
+  // GPA
+  if (/general\s*power\s*of\s*attorney|\bGPA\b/i.test(t)) {
+    f.gpaInvolved = true;
+    if (/registered\s*GPA|GPA\s*(?:is\s*)?registered|GPA.*document\s*no/i.test(t)) f.gpaRegistered = true;
+  }
+
+  // NALA
+  if (/NALA\s*(?:conversion\s*)?(?:order|completed|done|granted)/i.test(t)) f.nalaConversion = 'Done';
+  else if (/NALA\s*(?:pending|applied|under\s*process)/i.test(t)) f.nalaConversion = 'Pending';
+
+  // RERA
+  const reraM = t.match(/(?:TGRERA|TS\s*RERA|RERA)\s*(?:Reg[a-z]*\.?\s*(?:No\.?|Number)?)?[:\s]*([A-Z]\d{2,}[\s\/][A-Z\/\d]+)/i);
+  if (reraM) { f.reraRegistered = true; f._reraNumber = reraM[1].trim(); }
+
+  // Classification
+  if (/assigned\s*land/i.test(t)) f.classification = 'Assigned';
+  else if (/ceiling\s*(surplus|land)/i.test(t)) f.classification = 'Ceiling';
+  else if (/(forest\s*land|reserve\s*forest|\bRF\b|\bPF\b)/i.test(t)) f.classification = 'Forest';
+  else if (/(schedule[\-\s]*V|scheduled\s*tribal\s*area)/i.test(t)) f.classification = 'Tribal';
+  else if (/(endowment|wakf|waqf)/i.test(t)) f.classification = 'Endowment';
+  else if (/non[\-\s]?agricultural|\bNA\s*land\b|converted\s*land/i.test(t)) f.classification = 'NA';
+  else if (/agricultural\s*land|wet\s*land|dry\s*land/i.test(t)) f.classification = 'Agricultural';
+
+  // Layout / Planning
+  if (/HMDA\s*(?:approved|approval|permit|LP)/i.test(t)) f.layoutApproval = 'HMDA';
+  else if (/DTCP\s*(?:approved|approval)/i.test(t)) f.layoutApproval = 'DTCP';
+  else if (/BDA\s*(?:approved|approval)/i.test(t)) f.layoutApproval = 'BDA';
+  else if (/BMRDA/i.test(t)) f.layoutApproval = 'BMRDA';
+  else if (/CMDA/i.test(t)) f.layoutApproval = 'CMDA';
+
+  // Court / Litigation
+  if (/no\s*(pending\s*)?suit|no\s*litigation\s*found|nil\s*pending\s*cases/i.test(t)) f.courtSearchDone = true;
+
+  // Section 22-A
+  if (/section\s*22[\-\s]*A.*(not\s*(?:listed|found)|clear|nil|absent)/i.test(t)) f.section22A = 'Clear';
+  else if (/section\s*22[\-\s]*A.*(listed|prohibited|flagged|present)/i.test(t)) f.section22A = 'Flagged';
+
+  // FTL
+  if (/FTL\s*(?:buffer|zone).*(outside|clear|beyond)/i.test(t)) f.ftlBuffer = 'Clear';
+  else if (/FTL\s*(?:buffer|zone).*(within|inside|falls)/i.test(t)) f.ftlBuffer = 'In Buffer';
+
+  // Bhu Bharati
+  if (/bhu\s*bharati.*(verified|matched|confirmed)/i.test(t)) f.bhuBharatiROR = 'Verified';
+
+  // POA (JV)
+  if (/(registered|executed).*power\s*of\s*attorney.*(sub[\-\s]?registrar|SRO)/i.test(t)) f.poaRegistered = true;
+  if (/irrevocable\s*power\s*of\s*attorney/i.test(t)) f.poaIrrevocable = true;
+
+  // Owner type hints
+  if (/(?:Pvt\.?\s*Ltd\.?|Private\s*Limited|Ltd\.?|LLP)/i.test(t)) f.ownerType = 'Company';
+  else if (/\bHUF\b|Hindu\s*Undivided\s*Family/i.test(t)) f.ownerType = 'HUF';
+  else if (/\bNRI\b|Non[\-\s]?Resident|OCI\b/i.test(t)) f.ownerType = 'NRI';
+  else if (/partnership\s*firm/i.test(t)) f.ownerType = 'Partnership';
+  else if (/trust\s*(?:deed|registered)/i.test(t)) f.ownerType = 'Trust';
+  else if (/legal\s*heir|succession\s*certificate|inherited/i.test(t)) f.ownerType = 'Inherited';
+
+  return f;
+}
+
+async function extractFromFile(f, onProg) {
+  onProg && onProg('Reading ' + f.name);
+  let text = '';
+  const isPDF = f.type === 'application/pdf' || /\.pdf$/i.test(f.name);
+  const isImg = f.type.startsWith('image/') || /\.(png|jpg|jpeg|tif|tiff|bmp|webp)$/i.test(f.name);
+  try {
+    if (isPDF) {
+      text = await extractPDFText(f);
+      if (text.replace(/\s/g,'').length < 100) {
+        onProg && onProg('Scanned PDF detected — running OCR on ' + f.name);
+        text = await ocrPDFPages(f);
+      }
+    } else if (isImg) {
+      onProg && onProg('OCR on ' + f.name);
+      text = await ocrImage(f);
+    } else {
+      text = await f.text();
+    }
+  } catch (e) {
+    console.error('extract fail', f.name, e);
+    return {filename: f.name, text: '', docType: 'Error', fields: {}, error: e.message};
+  }
+  return {filename: f.name, text, docType: classifyDoc(text), fields: parseFields(text)};
+}
+
+// Merge fields across multiple docs; later non-null wins, booleans OR for true flags.
+function mergeFields(extractions) {
+  const merged = {};
+  const sources = {};
+  const ecYearsList = [];
+  extractions.forEach(ex => {
+    for (const k in ex.fields) {
+      const v = ex.fields[k];
+      if (v === null || v === undefined || v === '') continue;
+      if (k === 'ecYears') { ecYearsList.push(v); continue; }
+      // Prefer first non-null for strings; OR true for booleans
+      if (typeof v === 'boolean') {
+        merged[k] = merged[k] === true ? true : v;
+        if (v === true && !sources[k]) sources[k] = ex.filename;
+      } else if (merged[k] === undefined || merged[k] === null || merged[k] === '') {
+        merged[k] = v;
+        sources[k] = ex.filename;
+      }
+    }
+  });
+  if (ecYearsList.length) { merged.ecYears = Math.max(...ecYearsList); sources.ecYears = 'EC documents'; }
+  return {merged, sources};
+}
+
+function applyAutoFill(merged, sources) {
+  const textFields = {
+    state: 'f_state', dealType: 'f_dealType', projectName: 'f_projectName',
+    district: 'f_district', mandal: 'f_mandal', village: 'f_village',
+    surveyNos: 'f_surveyNos', extent: 'f_extent', extentSqm: 'f_extentSqm',
+    classification: 'f_classification', numberOfUnits: 'f_numberOfUnits',
+    currentOwners: 'f_currentOwners', ownerType: 'f_ownerType',
+    titleChainYears: 'f_titleChainYears', ecYears: 'f_ecYears',
+    nalaConversion: 'f_nalaConversion', layoutApproval: 'f_layoutApproval',
+    section22A: 'f_section22A', ftlBuffer: 'f_ftlBuffer',
+    bhuBharatiROR: 'f_bhuBharatiROR', agreementValue: 'f_agreementValue',
+    circleRate: 'f_circleRate'
+  };
+  const filled = [];
+  for (const k in textFields) {
+    const v = merged[k];
+    if (v === undefined || v === null || v === '') continue;
+    const el = document.getElementById(textFields[k]);
+    if (!el) continue;
+    if (el.tagName === 'SELECT') {
+      // Match value case-insensitively
+      const opt = [...el.options].find(o => o.value.toLowerCase() === String(v).toLowerCase());
+      if (opt) { el.value = opt.value; filled.push(k); el.classList.add('auto-filled'); }
+    } else {
+      el.value = v;
+      filled.push(k);
+      el.classList.add('auto-filled');
+    }
+  }
+  // Tri-state booleans
+  const triFields = ['gpaInvolved','gpaRegistered','ecLisPendens','ecHasGaps','courtSearchDone','poaRegistered','poaIrrevocable','reraRegistered'];
+  triFields.forEach(k => {
+    if (merged[k] === undefined || merged[k] === null) return;
+    const tri = document.querySelector('.tri[data-field="'+k+'"]');
+    if (!tri) return;
+    const btns = tri.querySelectorAll('button');
+    if (merged[k] === true && btns[0]) { btns[0].click(); filled.push(k); }
+    else if (merged[k] === false && btns[1]) { btns[1].click(); filled.push(k); }
+  });
+  // RERA is a select, handle specially
+  if (merged.reraRegistered === true) {
+    const r = document.getElementById('f_reraRegistered'); if (r) { r.value='true'; r.classList.add('auto-filled'); filled.push('reraRegistered'); }
+  }
+  updateConditionalFields();
+  updatePortalLinks();
+  return filled;
+}
+
+async function runExtraction(files) {
+  const prog = document.getElementById('extractProgress');
+  const res = document.getElementById('extractResults');
+  prog.classList.remove('hidden');
+  res.classList.add('hidden');
+  const extractions = [];
+  for (let i=0; i<files.length; i++) {
+    const f = files[i];
+    prog.innerHTML = `<div class="ex-prog">[${i+1}/${files.length}] Processing <strong>${f.name}</strong>...</div>`;
+    const ex = await extractFromFile(f, msg => {
+      prog.innerHTML = `<div class="ex-prog">[${i+1}/${files.length}] ${msg}</div>`;
+    });
+    extractions.push(ex);
+  }
+  const {merged, sources} = mergeFields(extractions);
+  const filled = applyAutoFill(merged, sources);
+  prog.classList.add('hidden');
+
+  // Render results summary
+  let html = '<div style="font-size:12px;font-weight:700;margin-bottom:6px;color:#166534">✓ Extracted from ' + extractions.length + ' document' + (extractions.length>1?'s':'') + ' · auto-filled ' + filled.length + ' field' + (filled.length!==1?'s':'') + '</div>';
+  extractions.forEach(e => {
+    const fc = Object.keys(e.fields).length;
+    html += `<div class="ex-doc"><span>${e.filename}</span><span><span class="type">${e.docType}</span> <span style="color:#8BA89A;font-size:10px;margin-left:6px">${fc} field${fc!==1?'s':''}${e.error?' · err':''}</span></span></div>`;
+  });
+  if (filled.length) {
+    html += '<div style="margin-top:8px;font-size:11px;color:#166534"><strong>Auto-filled:</strong><br>' + filled.map(k => `<span class="ex-field">${k}: ${typeof merged[k]==='object'?JSON.stringify(merged[k]):String(merged[k]).slice(0,40)}</span>`).join('') + '</div>';
+  }
+  html += '<div style="margin-top:8px;font-size:10px;color:#8BA89A;font-style:italic">Review highlighted (green) fields below · correct any errors · fill remaining fields · submit to run rules.</div>';
+  res.innerHTML = html;
+  res.classList.remove('hidden');
+}
+
+// ═══════════════════════════════════════════════
+// PORTAL QUICK LOOKUP LINKS
+// ═══════════════════════════════════════════════
+function updatePortalLinks() {
+  const state = document.getElementById('f_state')?.value || 'Telangana';
+  const sur = encodeURIComponent(document.getElementById('f_surveyNos')?.value || '');
+  const dist = encodeURIComponent(document.getElementById('f_district')?.value || '');
+  const vil = encodeURIComponent(document.getElementById('f_village')?.value || '');
+  const proj = encodeURIComponent(document.getElementById('f_projectName')?.value || '');
+  const suggest = sur || dist ? ` (ref: ${decodeURIComponent(sur||dist)})` : '';
+  const tg = [
+    {icon:'🏛️', name:'Bhu Bharati (ROR/1B/PPB)', url:'https://bhubharati.telangana.gov.in/', note:'Enter district→mandal→village→survey no'},
+    {icon:'📜', name:'IGRS EC Search', url:'https://registration.telangana.gov.in/echallan/IndexMobile.htm', note:'Encumbrance 15-30 yr'},
+    {icon:'🚫', name:'IGRS Prohibited Property (22-A)', url:'https://registration.telangana.gov.in/prohibitedPropertySearch.htm', note:'Section 22-A check'},
+    {icon:'🏗️', name:'TGRERA Project Search', url:'https://rera.telangana.gov.in/ProjectSearch.aspx', note:proj?'Search: '+decodeURIComponent(proj):'Verify registration'},
+    {icon:'💧', name:'HYDRAA FTL Buffer Map', url:'https://hydraa.telangana.gov.in/', note:'Lake/nala buffer check'},
+    {icon:'🗺️', name:'TG-bPASS (Layout/Building)', url:'https://tgbpass.telangana.gov.in/', note:'Approval status'},
+    {icon:'💰', name:'IGRS Market Value (Circle Rate)', url:'https://registration.telangana.gov.in/marketValueSearch.htm', note:'Post Apr 2025 rates'},
+    {icon:'⚖️', name:'eCourts Services (Case Search)', url:'https://services.ecourts.gov.in/ecourtindia_v6/', note:'District court search'},
+    {icon:'🏛️', name:'TS High Court Case Status', url:'https://tshc.gov.in/', note:'High Court search'}
+  ];
+  const ap = [
+    {icon:'🏛️', name:'AP Meebhoomi (ROR)', url:'https://meebhoomi.ap.gov.in/', note:'Adangal / 1B'},
+    {icon:'📜', name:'AP IGRS EC', url:'https://registration.ap.gov.in/', note:'EC + 22-A'},
+    {icon:'🏗️', name:'AP RERA', url:'https://rera.ap.gov.in/', note:'Project registration'},
+    {icon:'⚖️', name:'eCourts Services', url:'https://services.ecourts.gov.in/ecourtindia_v6/', note:'Case search'}
+  ];
+  const ka = [
+    {icon:'🏛️', name:'Karnataka Bhoomi (RTC)', url:'https://landrecords.karnataka.gov.in/', note:'RTC / Pahani'},
+    {icon:'🏗️', name:'Karnataka RERA', url:'https://rera.karnataka.gov.in/', note:'Project registration'},
+    {icon:'📜', name:'Kaveri Online (EC)', url:'https://kaveri.karnataka.gov.in/', note:'Encumbrance'}
+  ];
+  const tn = [
+    {icon:'🏛️', name:'TN Patta / Chitta', url:'https://eservices.tn.gov.in/eservicesnew/', note:'Patta transfer'},
+    {icon:'🏗️', name:'TN RERA', url:'https://rera.tn.gov.in/', note:'Project registration'}
+  ];
+  const mh = [
+    {icon:'🏛️', name:'Maharashtra 7/12 / Property Card', url:'https://bhulekh.mahabhumi.gov.in/', note:'7/12 extract'},
+    {icon:'🏗️', name:'MahaRERA', url:'https://maharera.maharashtra.gov.in/', note:'Project registration'}
+  ];
+  const pan = [
+    {icon:'🏦', name:'CERSAI (Mortgage/Lien)', url:'https://www.cersai.org.in/', note:'Central mortgage registry'},
+    {icon:'📊', name:'MCA Company Master Data', url:'https://www.mca.gov.in/mcafoportal/', note:'If seller is company'},
+    {icon:'⚠️', name:'IBBI (Insolvency)', url:'https://www.ibbi.gov.in/', note:'Check seller IBC status'}
+  ];
+  const map = {Telangana: tg, 'Andhra Pradesh': ap, Karnataka: ka, 'Tamil Nadu': tn, Maharashtra: mh};
+  const list = (map[state] || []).concat(pan);
+  document.getElementById('portalLinks').innerHTML = list.map(l =>
+    `<a class="portal-link" href="${l.url}" target="_blank" rel="noopener"><span style="font-size:18px">${l.icon}</span><span style="flex:1"><div>${l.name}</div><div style="font-size:9px;color:#8BA89A;font-weight:400;margin-top:1px">${l.note}</div></span></a>`
+  ).join('');
+}
+
 // ── TABS ──
 function showTab(name) {
   ['manual','upload','report','checklist'].forEach(t => {
@@ -1766,8 +2188,21 @@ window.addEventListener('DOMContentLoaded', () => {
   renderDocGuide();
   renderChecklist();
   updateConditionalFields();
+  updatePortalLinks();
   // Dealtype change → re-evaluate JV section visibility
   document.getElementById('f_dealType').addEventListener('change', updateConditionalFields);
+  // Refresh portal links when key location/identity fields change
+  ['f_state','f_district','f_village','f_surveyNos','f_projectName'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', updatePortalLinks) || el.addEventListener('change', updatePortalLinks);
+  });
+  // Wire drag-drop for extraction zone
+  const ez = document.getElementById('extractZone');
+  if (ez) {
+    ez.addEventListener('dragover', e => { e.preventDefault(); ez.classList.add('drag'); });
+    ez.addEventListener('dragleave', () => ez.classList.remove('drag'));
+    ez.addEventListener('drop', e => { e.preventDefault(); ez.classList.remove('drag'); runExtraction(e.dataTransfer.files); });
+  }
 });
 </script>
 </body>
