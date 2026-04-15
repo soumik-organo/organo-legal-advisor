@@ -302,7 +302,10 @@ async function runAnalysis() {
   dz.classList.add('disabled');
 
   try {
-    const TOKEN_BUDGET = 120000;
+    // Gemini 2.0 Flash has 1M token context — use a large per-batch budget
+    const TOKEN_BUDGET = 700000;
+    // Free tier: 15 req/min → ~1 request every 5s. Use 6s for safety margin.
+    const INTER_BATCH_DELAY_MS = 6000;
     const batches = []; let cur = [], curT = 0;
 
     for (let i = 0; i < uploadedFiles.length; i++) {
@@ -317,6 +320,8 @@ async function runAnalysis() {
     const trainingCtx = feedbackLog.length ? '\n\nTRAINING FROM PAST ANALYSES:\n' + feedbackLog.slice(-5).map(f=>'- Verdict: '+f.verdict+'. Rating: '+f.accuracy+(f.missed?'. Missed: '+f.missed:'')).join('\n') : '';
     const fullPrompt = BRAIN + trainingCtx;
 
+    const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
     if (batches.length === 1) {
       progText.textContent = 'Senior legal advisor analyzing ' + uploadedFiles.length + ' document' + (uploadedFiles.length>1?'s':'') + '...';
       batches[0].push({type:'text',text:'Analyze ALL above. Return ONLY JSON.'});
@@ -324,11 +329,18 @@ async function runAnalysis() {
     } else {
       const findings = [];
       for (let b = 0; b < batches.length; b++) {
-        progText.textContent = 'Pass 1/2: Extracting batch ' + (b+1) + '/' + batches.length + '...';
+        progText.textContent = 'Pass 1/2: Extracting batch ' + (b+1) + '/' + batches.length + ' (may take 30-90s per batch)...';
         batches[b].push({type:'text',text:'Extract all findings. Return ONLY JSON.'});
         try { findings.push(JSON.parse(await callAPI(EXTRACT_PROMPT, batches[b]))); }
-        catch(e) { findings.push({raw_text: 'extraction failed'}); }
+        catch(e) { findings.push({raw_text: 'extraction failed: ' + e.message}); }
+        // Pace requests to stay under free-tier rate limit
+        if (b < batches.length - 1) {
+          progText.textContent = 'Waiting to respect rate limit...';
+          await sleep(INTER_BATCH_DELAY_MS);
+        }
       }
+      // Final delay before synthesis call
+      await sleep(INTER_BATCH_DELAY_MS);
       progText.textContent = 'Pass 2/2: Synthesizing ' + batches.length + ' batches...';
       analysisResult = JSON.parse(await callAPI(fullPrompt, [{type:'text',text:'Findings from '+batches.length+' batches ('+uploadedFiles.length+' files):\n\n'+JSON.stringify(findings,null,2)+'\n\nSynthesize into final report. Return ONLY JSON.'}]));
     }
