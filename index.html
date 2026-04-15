@@ -48,6 +48,22 @@ body{font-family:var(--FB);background:var(--BG);min-height:100vh;color:var(--G)}
 .disclaimer{margin-top:24px;padding:10px 14px;background:rgba(27,46,35,.04);border-radius:8px;border:1px solid rgba(27,46,35,.08);font-size:9px;color:#8BA89A;line-height:1.7}
 .hidden{display:none!important}
 .step-num{min-width:20px;height:20px;border-radius:50%;background:var(--G);color:#fff;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0}
+.form-sec{background:#fff;border:1px solid #DDD8CE;border-radius:12px;padding:18px;margin-bottom:10px}
+.form-sec-title{font-family:var(--FB);font-size:12px;font-weight:700;color:var(--G);text-transform:uppercase;letter-spacing:1.5px;margin:0 0 12px;padding-bottom:6px;border-bottom:1px solid #E8E5DC;display:flex;align-items:center;gap:8px}
+.form-sec-title .num{background:var(--G);color:#fff;width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px}
+.fg{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+.fld label{display:block;font-size:10px;font-weight:600;color:#4A6B5A;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.fld input[type=text],.fld input[type=number],.fld select,.fld textarea{width:100%;padding:8px 10px;border:1px solid #DDD8CE;border-radius:8px;font-family:var(--FB);font-size:12px;background:#FAF9F6;box-sizing:border-box}
+.fld input:focus,.fld select:focus,.fld textarea:focus{outline:none;border-color:var(--G2);background:#fff}
+.fld .hint{font-size:9px;color:#8BA89A;margin-top:2px;line-height:1.4}
+.fld-full{grid-column:1/-1}
+.tri{display:flex;gap:4px}
+.tri button{flex:1;padding:6px 8px;border:1px solid #DDD8CE;border-radius:6px;background:#FAF9F6;font-family:var(--FB);font-size:11px;font-weight:600;cursor:pointer;color:#4A6B5A}
+.tri button.sel-y{background:#16A34A;color:#fff;border-color:#16A34A}
+.tri button.sel-n{background:#DC2626;color:#fff;border-color:#DC2626}
+.tri button.sel-u{background:#CA8A04;color:#fff;border-color:#CA8A04}
+.cond-hide{display:none}
+.hdr-note{font-size:11px;color:#8BA89A;background:#F7F6F3;padding:8px 12px;border-radius:8px;margin-bottom:14px;border-left:3px solid var(--G2);line-height:1.5}
 </style>
 </head>
 <body>
@@ -64,7 +80,8 @@ body{font-family:var(--FB);background:var(--BG);min-height:100vh;color:var(--G)}
     <div id="trainingBadge" class="hidden" style="font-size:10px;color:#6BAE8A;background:rgba(107,174,138,.1);padding:4px 10px;border-radius:6px"></div>
   </div>
   <div class="tabs">
-    <button class="tab active" onclick="showTab('upload')">Upload Documents</button>
+    <button class="tab active" onclick="showTab('manual')">Rule-Based Analysis</button>
+    <button class="tab" onclick="showTab('upload')">AI Upload (Optional)</button>
     <button class="tab" onclick="showTab('report')">Analysis Report</button>
     <button class="tab" onclick="showTab('checklist')">Checklist</button>
   </div>
@@ -74,8 +91,394 @@ body{font-family:var(--FB);background:var(--BG);min-height:100vh;color:var(--G)}
 <!-- MAIN CONTENT -->
 <div class="main">
 
+<!-- MANUAL ANALYSIS TAB (Rule-Based — Zero AI Cost) -->
+<div id="tab-manual">
+<div class="card">
+  <h2 style="font-family:var(--F);font-size:20px;font-weight:600;margin-bottom:4px">Rule-Based Land Due Diligence</h2>
+  <p style="font-size:12px;color:#8BA89A;margin-bottom:14px">Fill in the verified facts from your documents. A deterministic rule engine applies 45+ checks across Telangana, HMDA, HYDRAA/FTL, TGRERA, Bhu Bharati, Section 22-A, NALA, litigation, seller capacity, and JV co-promoter liability. No tokens, no API — runs instantly.</p>
+  <div class="hdr-note"><strong>How to use:</strong> Your land & legal team reviews documents and fills this form. Every field has a legal rule behind it. Output matches the AI-mode report format. Save time by only filling what's relevant — skip-to-unknown is fine and is flagged as a risk.</div>
+
+  <form id="manualForm" onsubmit="event.preventDefault();processManual()">
+
+  <!-- 1. BASIC INFO -->
+  <div class="form-sec">
+    <div class="form-sec-title"><span class="num">1</span>Basic Info</div>
+    <div class="fg">
+      <div class="fld"><label>State</label>
+        <select id="f_state">
+          <option value="Telangana">Telangana</option>
+          <option value="Andhra Pradesh">Andhra Pradesh</option>
+          <option value="Karnataka">Karnataka</option>
+          <option value="Tamil Nadu">Tamil Nadu</option>
+          <option value="Maharashtra">Maharashtra</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+      <div class="fld"><label>Deal Type</label>
+        <select id="f_dealType">
+          <option value="Outright">Outright Purchase</option>
+          <option value="JV" selected>Joint Venture (JV)</option>
+          <option value="JDA">Joint Development Agreement (JDA)</option>
+          <option value="Option">Option / MOU</option>
+        </select>
+      </div>
+      <div class="fld"><label>Project Name</label><input type="text" id="f_projectName" placeholder="e.g. Organo Naandi"></div>
+    </div>
+  </div>
+
+  <!-- 2. LOCATION & LAND -->
+  <div class="form-sec">
+    <div class="form-sec-title"><span class="num">2</span>Location & Land</div>
+    <div class="fg">
+      <div class="fld"><label>District</label><input type="text" id="f_district"></div>
+      <div class="fld"><label>Mandal / Taluk</label><input type="text" id="f_mandal"></div>
+      <div class="fld"><label>Village</label><input type="text" id="f_village"></div>
+      <div class="fld"><label>Survey Number(s)</label><input type="text" id="f_surveyNos" placeholder="e.g. 123/A, 124/2"></div>
+      <div class="fld"><label>Extent (human-readable)</label><input type="text" id="f_extent" placeholder="e.g. 5 acres 20 guntas"></div>
+      <div class="fld"><label>Extent in sq.m (for RERA calc)</label><input type="number" id="f_extentSqm" placeholder="e.g. 20234" min="0"><div class="hint">1 acre = 4046.86 sq.m</div></div>
+      <div class="fld"><label>Land Classification</label>
+        <select id="f_classification">
+          <option value="Unknown">Unknown / Not Checked</option>
+          <option value="Agricultural">Agricultural</option>
+          <option value="NA">NA / Converted (NALA done)</option>
+          <option value="Assigned">Assigned Land</option>
+          <option value="Ceiling">Ceiling / Surplus Land</option>
+          <option value="Forest">Forest / RF / PF</option>
+          <option value="Tribal">Tribal / Schedule-V</option>
+          <option value="Endowment">Endowment / Wakf</option>
+        </select>
+      </div>
+      <div class="fld"><label>Planned Units (for RERA calc)</label><input type="number" id="f_numberOfUnits" placeholder="e.g. 24" min="0"><div class="hint">&gt;8 units OR &gt;500 sq.m = TGRERA mandatory</div></div>
+      <div class="fld fld-full"><label>Current Owner(s) Name(s)</label><input type="text" id="f_currentOwners" placeholder="As per registered documents"></div>
+    </div>
+  </div>
+
+  <!-- 3. SELLER / OWNER CAPACITY -->
+  <div class="form-sec">
+    <div class="form-sec-title"><span class="num">3</span>Seller Capacity</div>
+    <div class="fg">
+      <div class="fld"><label>Owner Type</label>
+        <select id="f_ownerType" onchange="updateConditionalFields()">
+          <option value="Individual">Individual</option>
+          <option value="HUF">HUF (Joint Family)</option>
+          <option value="Company">Company / LLP</option>
+          <option value="Partnership">Partnership Firm</option>
+          <option value="NRI">NRI / OCI</option>
+          <option value="Trust">Trust / Society</option>
+          <option value="Inherited">Inherited (multiple legal heirs)</option>
+        </select>
+      </div>
+      <div class="fld"><label>Number of Sellers / Co-owners</label><input type="number" id="f_numberOfSellers" min="1" value="1"></div>
+      <div class="fld" id="cond_huf"><label>All coparcener consents obtained?</label>
+        <div class="tri" data-field="allCoparcenerConsents">
+          <button type="button" onclick="setTri(this,true)">Yes</button>
+          <button type="button" onclick="setTri(this,false)">No</button>
+          <button type="button" onclick="setTri(this,null)">Unknown</button>
+        </div>
+      </div>
+      <div class="fld" id="cond_company"><label>Board resolution / authorisation on file?</label>
+        <div class="tri" data-field="boardResolution">
+          <button type="button" onclick="setTri(this,true)">Yes</button>
+          <button type="button" onclick="setTri(this,false)">No</button>
+          <button type="button" onclick="setTri(this,null)">Unknown</button>
+        </div>
+      </div>
+      <div class="fld" id="cond_nri"><label>FEMA compliance verified?</label>
+        <div class="tri" data-field="femaCompliance">
+          <button type="button" onclick="setTri(this,true)">Yes</button>
+          <button type="button" onclick="setTri(this,false)">No</button>
+          <button type="button" onclick="setTri(this,null)">Unknown</button>
+        </div>
+      </div>
+      <div class="fld" id="cond_inherited"><label>Legal heir certificate + succession clear?</label>
+        <div class="tri" data-field="legalHeirClear">
+          <button type="button" onclick="setTri(this,true)">Yes</button>
+          <button type="button" onclick="setTri(this,false)">No</button>
+          <button type="button" onclick="setTri(this,null)">Unknown</button>
+        </div>
+      </div>
+      <div class="fld"><label>Minor(s) among owners?</label>
+        <div class="tri" data-field="minorsInvolved">
+          <button type="button" onclick="setTri(this,true)">Yes</button>
+          <button type="button" onclick="setTri(this,false)">No</button>
+          <button type="button" onclick="setTri(this,null)">Unknown</button>
+        </div>
+      </div>
+      <div class="fld"><label>Any seller insolvency / IBC risk?</label>
+        <div class="tri" data-field="insolvencyRisk">
+          <button type="button" onclick="setTri(this,true)">Yes</button>
+          <button type="button" onclick="setTri(this,false)">No</button>
+          <button type="button" onclick="setTri(this,null)">Unknown</button>
+        </div>
+      </div>
+      <div class="fld"><label>Prior agreements to sell by owner?</label>
+        <div class="tri" data-field="priorAgreements">
+          <button type="button" onclick="setTri(this,true)">Yes</button>
+          <button type="button" onclick="setTri(this,false)">No</button>
+          <button type="button" onclick="setTri(this,null)">Unknown</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. TITLE CHAIN -->
+  <div class="form-sec">
+    <div class="form-sec-title"><span class="num">4</span>Title Chain & Encumbrance</div>
+    <div class="fg">
+      <div class="fld"><label>Title chain covered (years)</label><input type="number" id="f_titleChainYears" min="0" max="100" value="30"><div class="hint">Minimum 30 years recommended</div></div>
+      <div class="fld"><label>EC period obtained (years)</label><input type="number" id="f_ecYears" min="0" max="100" value="0"><div class="hint">&lt;15 yr = critical, 15-30 = medium, 30+ = clear</div></div>
+      <div class="fld"><label>Gaps / missing years in EC?</label>
+        <div class="tri" data-field="ecHasGaps">
+          <button type="button" onclick="setTri(this,true)">Yes</button>
+          <button type="button" onclick="setTri(this,false)">No</button>
+          <button type="button" onclick="setTri(this,null)">Unknown</button>
+        </div>
+      </div>
+      <div class="fld"><label>Lis pendens / attachments in EC?</label>
+        <div class="tri" data-field="ecLisPendens">
+          <button type="button" onclick="setTri(this,true)">Yes</button>
+          <button type="button" onclick="setTri(this,false)">No</button>
+          <button type="button" onclick="setTri(this,null)">Unknown</button>
+        </div>
+      </div>
+      <div class="fld"><label>Mother deed registered & certified copy obtained?</label>
+        <div class="tri" data-field="motherDeedRegistered">
+          <button type="button" onclick="setTri(this,true)">Yes</button>
+          <button type="button" onclick="setTri(this,false)">No</button>
+          <button type="button" onclick="setTri(this,null)">Unknown</button>
+        </div>
+      </div>
+      <div class="fld"><label>GPA used in chain?</label>
+        <div class="tri" data-field="gpaInvolved" onclick="setTimeout(updateConditionalFields,0)">
+          <button type="button" onclick="setTri(this,true)">Yes</button>
+          <button type="button" onclick="setTri(this,false)">No</button>
+          <button type="button" onclick="setTri(this,null)">Unknown</button>
+        </div>
+      </div>
+      <div class="fld" id="cond_gpa"><label>Is the GPA registered (not just notarised)?</label>
+        <div class="tri" data-field="gpaRegistered">
+          <button type="button" onclick="setTri(this,true)">Yes</button>
+          <button type="button" onclick="setTri(this,false)">No</button>
+          <button type="button" onclick="setTri(this,null)">Unknown</button>
+        </div>
+        <div class="hint">Per SC Suraj Lamp 2009: unregistered GPA does NOT convey title</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. REGULATORY (STATE-SPECIFIC) -->
+  <div class="form-sec">
+    <div class="form-sec-title"><span class="num">5</span>Regulatory & Approvals</div>
+    <div class="fg">
+      <div class="fld"><label>NALA / NA Conversion</label>
+        <select id="f_nalaConversion">
+          <option value="Unknown">Unknown / Not Checked</option>
+          <option value="Done">Done (order on file)</option>
+          <option value="Pending">Pending / Applied</option>
+          <option value="NA">Not Required (already NA)</option>
+        </select>
+      </div>
+      <div class="fld"><label>Layout / Planning Approval</label>
+        <select id="f_layoutApproval">
+          <option value="Unknown">Unknown</option>
+          <option value="HMDA">HMDA Approved</option>
+          <option value="DTCP">DTCP Approved</option>
+          <option value="BDA">BDA Approved</option>
+          <option value="BMRDA">BMRDA Approved</option>
+          <option value="CMDA">CMDA Approved</option>
+          <option value="Pending">Pending</option>
+          <option value="None">Not Applicable</option>
+        </select>
+      </div>
+      <div class="fld"><label>Land Use Certificate obtained?</label>
+        <div class="tri" data-field="landUseCertificate">
+          <button type="button" onclick="setTri(this,true)">Yes</button>
+          <button type="button" onclick="setTri(this,false)">No</button>
+          <button type="button" onclick="setTri(this,null)">N/A</button>
+        </div>
+      </div>
+      <div class="fld"><label>RERA registered?</label>
+        <select id="f_reraRegistered">
+          <option value="null">Unknown / Not Checked</option>
+          <option value="true">Yes — Registered</option>
+          <option value="false">No — Not Registered</option>
+          <option value="na">Not Applicable (below threshold)</option>
+        </select>
+        <div class="hint">Auto-flag if &gt;500 sq.m or &gt;8 units</div>
+      </div>
+      <div class="fld"><label>Section 22-A check (IGRS + Bhu Bharati)</label>
+        <select id="f_section22A">
+          <option value="Not Checked">Not Checked</option>
+          <option value="Clear">Clear on both portals</option>
+          <option value="Flagged">Flagged / Prohibited</option>
+        </select>
+      </div>
+      <div class="fld"><label>FTL / Buffer zone status (HYDRAA)</label>
+        <select id="f_ftlBuffer">
+          <option value="Not Checked">Not Checked</option>
+          <option value="Clear">Clear — outside buffer</option>
+          <option value="In Buffer">In FTL / Buffer Zone</option>
+        </select>
+        <div class="hint">Telangana only. 30-200m buffer per G.O. 99</div>
+      </div>
+      <div class="fld"><label>Bhu Bharati ROR / 1B verified?</label>
+        <select id="f_bhuBharatiROR">
+          <option value="Not Checked">Not Checked</option>
+          <option value="Verified">Verified — name & extent match</option>
+          <option value="Mismatch">Mismatch / discrepancy</option>
+        </select>
+      </div>
+      <div class="fld"><label>Bhudhaar (14-digit) available?</label>
+        <div class="tri" data-field="bhudhaarAvailable">
+          <button type="button" onclick="setTri(this,true)">Yes</button>
+          <button type="button" onclick="setTri(this,false)">No</button>
+          <button type="button" onclick="setTri(this,null)">Unknown</button>
+        </div>
+      </div>
+      <div class="fld"><label>Bhu Bharati ROR correction done? (deadline Apr 13, 2026)</label>
+        <div class="tri" data-field="bhuBharatiCorrectionDone">
+          <button type="button" onclick="setTri(this,true)">Yes / No corrections needed</button>
+          <button type="button" onclick="setTri(this,false)">Pending</button>
+          <button type="button" onclick="setTri(this,null)">Unknown</button>
+        </div>
+      </div>
+      <div class="fld"><label>Pending mutations?</label>
+        <div class="tri" data-field="pendingMutations">
+          <button type="button" onclick="setTri(this,true)">Yes</button>
+          <button type="button" onclick="setTri(this,false)">No</button>
+          <button type="button" onclick="setTri(this,null)">Unknown</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. LITIGATION & PHYSICAL -->
+  <div class="form-sec">
+    <div class="form-sec-title"><span class="num">6</span>Litigation & Physical Verification</div>
+    <div class="fg">
+      <div class="fld"><label>Court search report obtained?</label>
+        <div class="tri" data-field="courtSearchDone">
+          <button type="button" onclick="setTri(this,true)">Yes</button>
+          <button type="button" onclick="setTri(this,false)">No</button>
+          <button type="button" onclick="setTri(this,null)">Unknown</button>
+        </div>
+      </div>
+      <div class="fld"><label>District Court search</label>
+        <select id="f_districtCourt"><option value="Not Done">Not Done</option><option value="Clear">Clear</option><option value="Pending Cases">Pending Cases Found</option></select>
+      </div>
+      <div class="fld"><label>High Court search</label>
+        <select id="f_highCourt"><option value="Not Done">Not Done</option><option value="Clear">Clear</option><option value="Pending Cases">Pending Cases Found</option></select>
+      </div>
+      <div class="fld"><label>Revenue Tribunal search</label>
+        <select id="f_revenueTribunal"><option value="Not Done">Not Done</option><option value="Clear">Clear</option><option value="Pending Cases">Pending Cases Found</option></select>
+      </div>
+      <div class="fld"><label>Site visit / physical verification done?</label>
+        <div class="tri" data-field="siteVisitDone">
+          <button type="button" onclick="setTri(this,true)">Yes</button>
+          <button type="button" onclick="setTri(this,false)">No</button>
+          <button type="button" onclick="setTri(this,null)">Unknown</button>
+        </div>
+      </div>
+      <div class="fld"><label>Boundaries match FMB / survey sketch?</label>
+        <div class="tri" data-field="boundariesMatchFMB">
+          <button type="button" onclick="setTri(this,true)">Yes</button>
+          <button type="button" onclick="setTri(this,false)">No</button>
+          <button type="button" onclick="setTri(this,null)">Unknown</button>
+        </div>
+      </div>
+      <div class="fld"><label>Encroachments detected?</label>
+        <div class="tri" data-field="encroachments">
+          <button type="button" onclick="setTri(this,true)">Yes</button>
+          <button type="button" onclick="setTri(this,false)">No</button>
+          <button type="button" onclick="setTri(this,null)">Unknown</button>
+        </div>
+      </div>
+      <div class="fld"><label>Clear approach road?</label>
+        <div class="tri" data-field="approachRoad">
+          <button type="button" onclick="setTri(this,true)">Yes</button>
+          <button type="button" onclick="setTri(this,false)">No</button>
+          <button type="button" onclick="setTri(this,null)">Unknown</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7. FINANCIAL -->
+  <div class="form-sec">
+    <div class="form-sec-title"><span class="num">7</span>Financial & Tax</div>
+    <div class="fg">
+      <div class="fld"><label>Agreement / Consideration Value (INR)</label><input type="number" id="f_agreementValue" min="0" placeholder="e.g. 75000000"><div class="hint">Triggers TDS check (&gt;50L = 1% under Sec 194-IA)</div></div>
+      <div class="fld"><label>Circle / Market Rate Value (INR)</label><input type="number" id="f_circleRate" min="0" placeholder="e.g. 82000000"><div class="hint">Stamp duty on HIGHER of the two</div></div>
+      <div class="fld"><label>Stamp duty paid correctly?</label>
+        <div class="tri" data-field="stampDutyCorrect">
+          <button type="button" onclick="setTri(this,true)">Yes</button>
+          <button type="button" onclick="setTri(this,false)">No</button>
+          <button type="button" onclick="setTri(this,null)">Unknown</button>
+        </div>
+      </div>
+      <div class="fld"><label>Tax paid receipts (last 10 yrs)?</label>
+        <div class="tri" data-field="taxReceipts">
+          <button type="button" onclick="setTri(this,true)">Yes</button>
+          <button type="button" onclick="setTri(this,false)">No</button>
+          <button type="button" onclick="setTri(this,null)">Unknown</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 8. JV/JDA SPECIFIC -->
+  <div class="form-sec" id="sec_jv">
+    <div class="form-sec-title"><span class="num">8</span>JV / JDA Specific</div>
+    <div class="fg">
+      <div class="fld"><label>POA registered (not just notarised)?</label>
+        <div class="tri" data-field="poaRegistered">
+          <button type="button" onclick="setTri(this,true)">Yes</button>
+          <button type="button" onclick="setTri(this,false)">No</button>
+          <button type="button" onclick="setTri(this,null)">Unknown / No POA</button>
+        </div>
+      </div>
+      <div class="fld"><label>POA irrevocable clause?</label>
+        <div class="tri" data-field="poaIrrevocable">
+          <button type="button" onclick="setTri(this,true)">Yes</button>
+          <button type="button" onclick="setTri(this,false)">No</button>
+          <button type="button" onclick="setTri(this,null)">N/A</button>
+        </div>
+      </div>
+      <div class="fld"><label>Back-to-back indemnity from landowner?</label>
+        <div class="tri" data-field="coPromoterClause">
+          <button type="button" onclick="setTri(this,true)">Yes</button>
+          <button type="button" onclick="setTri(this,false)">No</button>
+          <button type="button" onclick="setTri(this,null)">Unknown</button>
+        </div>
+        <div class="hint">Critical per SC Sriganesh v. Unishire (Feb 2026)</div>
+      </div>
+      <div class="fld"><label>Revenue / Area share (%)</label><input type="number" id="f_revenueSharePercent" min="0" max="100" placeholder="Organo's share"></div>
+      <div class="fld"><label>Exit / termination clause defined?</label>
+        <div class="tri" data-field="exitClause">
+          <button type="button" onclick="setTri(this,true)">Yes</button>
+          <button type="button" onclick="setTri(this,false)">No</button>
+          <button type="button" onclick="setTri(this,null)">Unknown</button>
+        </div>
+      </div>
+      <div class="fld"><label>Delay penalty clause defined?</label>
+        <div class="tri" data-field="delayPenalties">
+          <button type="button" onclick="setTri(this,true)">Yes</button>
+          <button type="button" onclick="setTri(this,false)">No</button>
+          <button type="button" onclick="setTri(this,null)">Unknown</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <button class="btn" type="submit" style="margin-top:4px">Run Rule Engine → Generate Report</button>
+  <div style="font-size:10px;color:#8BA89A;text-align:center;margin-top:6px">Deterministic · Offline · Zero tokens · Instant</div>
+
+  </form>
+</div>
+</div>
+
 <!-- UPLOAD TAB -->
-<div id="tab-upload">
+<div id="tab-upload" class="hidden">
 <div class="card">
   <h2 style="font-family:var(--F);font-size:20px;font-weight:600;margin-bottom:4px">Upload Land Documents</h2>
   <p style="font-size:12px;color:#8BA89A;margin-bottom:14px">Upload all documents for the land parcel or JV deal. The AI identifies the state, applies regulations, and flags every pain point.</p>
@@ -562,13 +965,748 @@ function submitFeedback() {
 
 // ── TABS ──
 function showTab(name) {
-  ['upload','report','checklist'].forEach(t => {
+  ['manual','upload','report','checklist'].forEach(t => {
     document.getElementById('tab-'+t).classList.toggle('hidden', t!==name);
   });
   document.querySelectorAll('.tab').forEach((btn,i) => {
-    const tabs = ['upload','report','checklist'];
+    const tabs = ['manual','upload','report','checklist'];
     btn.classList.toggle('active', tabs[i]===name);
   });
+}
+
+// ═══════════════════════════════════════════════
+// MANUAL ANALYSIS — FORM HELPERS
+// ═══════════════════════════════════════════════
+
+// Tri-state button: stores value on the .tri container as data-value ('true'/'false'/'null')
+function setTri(btn, val) {
+  const cont = btn.closest('.tri');
+  cont.dataset.value = val === null ? 'null' : String(val);
+  cont.querySelectorAll('button').forEach(b => b.classList.remove('sel-y','sel-n','sel-u'));
+  if (val === true) btn.classList.add('sel-y');
+  else if (val === false) btn.classList.add('sel-n');
+  else btn.classList.add('sel-u');
+}
+function getTri(field) {
+  const el = document.querySelector('.tri[data-field="'+field+'"]');
+  if (!el || !el.dataset.value) return undefined; // not set
+  if (el.dataset.value === 'true') return true;
+  if (el.dataset.value === 'false') return false;
+  return null;
+}
+
+// Show/hide conditional fields based on ownerType, gpaInvolved, dealType
+function updateConditionalFields() {
+  const ot = document.getElementById('f_ownerType').value;
+  document.getElementById('cond_huf').style.display = ot==='HUF' ? '' : 'none';
+  document.getElementById('cond_company').style.display = (ot==='Company'||ot==='Partnership'||ot==='Trust') ? '' : 'none';
+  document.getElementById('cond_nri').style.display = ot==='NRI' ? '' : 'none';
+  document.getElementById('cond_inherited').style.display = ot==='Inherited' ? '' : 'none';
+  const gpa = getTri('gpaInvolved');
+  document.getElementById('cond_gpa').style.display = gpa===true ? '' : 'none';
+  const dt = document.getElementById('f_dealType').value;
+  document.getElementById('sec_jv').style.display = (dt==='JV'||dt==='JDA') ? '' : 'none';
+}
+
+// Collect all form values into a flat object
+function collectFormData() {
+  const g = id => document.getElementById(id)?.value || '';
+  const gn = id => { const v = document.getElementById(id)?.value; return v==='' ? 0 : Number(v); };
+  const rera = g('f_reraRegistered');
+  return {
+    state: g('f_state'),
+    dealType: g('f_dealType'),
+    projectName: g('f_projectName'),
+    district: g('f_district'),
+    mandal: g('f_mandal'),
+    village: g('f_village'),
+    surveyNos: g('f_surveyNos'),
+    extent: g('f_extent'),
+    extentSqm: gn('f_extentSqm'),
+    classification: g('f_classification'),
+    numberOfUnits: gn('f_numberOfUnits'),
+    currentOwners: g('f_currentOwners'),
+    ownerType: g('f_ownerType'),
+    numberOfSellers: gn('f_numberOfSellers'),
+    allCoparcenerConsents: getTri('allCoparcenerConsents'),
+    boardResolution: getTri('boardResolution'),
+    femaCompliance: getTri('femaCompliance'),
+    legalHeirClear: getTri('legalHeirClear'),
+    minorsInvolved: getTri('minorsInvolved'),
+    insolvencyRisk: getTri('insolvencyRisk'),
+    priorAgreements: getTri('priorAgreements'),
+    titleChainYears: gn('f_titleChainYears'),
+    ecYears: gn('f_ecYears'),
+    ecHasGaps: getTri('ecHasGaps'),
+    ecLisPendens: getTri('ecLisPendens'),
+    motherDeedRegistered: getTri('motherDeedRegistered'),
+    gpaInvolved: getTri('gpaInvolved'),
+    gpaRegistered: getTri('gpaRegistered'),
+    nalaConversion: g('f_nalaConversion'),
+    layoutApproval: g('f_layoutApproval'),
+    landUseCertificate: getTri('landUseCertificate'),
+    reraRegistered: rera==='true' ? true : rera==='false' ? false : rera==='na' ? 'na' : null,
+    section22A: g('f_section22A'),
+    ftlBuffer: g('f_ftlBuffer'),
+    bhuBharatiROR: g('f_bhuBharatiROR'),
+    bhudhaarAvailable: getTri('bhudhaarAvailable'),
+    bhuBharatiCorrectionDone: getTri('bhuBharatiCorrectionDone'),
+    pendingMutations: getTri('pendingMutations'),
+    courtSearchDone: getTri('courtSearchDone'),
+    districtCourt: g('f_districtCourt'),
+    highCourt: g('f_highCourt'),
+    revenueTribunal: g('f_revenueTribunal'),
+    siteVisitDone: getTri('siteVisitDone'),
+    boundariesMatchFMB: getTri('boundariesMatchFMB'),
+    encroachments: getTri('encroachments'),
+    approachRoad: getTri('approachRoad'),
+    agreementValue: gn('f_agreementValue'),
+    circleRate: gn('f_circleRate'),
+    stampDutyCorrect: getTri('stampDutyCorrect'),
+    taxReceipts: getTri('taxReceipts'),
+    poaRegistered: getTri('poaRegistered'),
+    poaIrrevocable: getTri('poaIrrevocable'),
+    coPromoterClause: getTri('coPromoterClause'),
+    revenueSharePercent: gn('f_revenueSharePercent'),
+    exitClause: getTri('exitClause'),
+    delayPenalties: getTri('delayPenalties'),
+  };
+}
+
+// ═══════════════════════════════════════════════
+// RULE ENGINE — 45+ DETERMINISTIC CHECKS
+// ═══════════════════════════════════════════════
+function runRuleEngine(f) {
+  const pains = [];
+  const tsItems = [];
+  const jvRisks = [];
+  const critDocs = [];
+  const impDocs = [];
+  const recDocs = [];
+  let pid = 1;
+
+  const addPain = (severity, category, issue, legal_basis, what_happens_if_ignored, fix, time_to_fix, blocking) => {
+    pains.push({id: pid++, severity, category, issue, legal_basis, what_happens_if_ignored, fix, time_to_fix: time_to_fix||'—', blocking: !!blocking});
+  };
+  const isTG = f.state === 'Telangana';
+  const isJV = f.dealType === 'JV' || f.dealType === 'JDA';
+
+  // ── 1. TITLE CHAIN ──
+  if (f.titleChainYears < 30) {
+    addPain('HIGH','Title',
+      `Title chain covers only ${f.titleChainYears} years — below the 30-year minimum.`,
+      'Standard due diligence practice + Limitation Act 1963 (12yr adverse possession window × 2.5 safety factor).',
+      'Latent claims from prior owners can surface as adverse possession or undisclosed encumbrances.',
+      'Obtain certified copies of deeds going back ≥30 years and reconstruct the chain.',
+      '2–4 weeks', f.titleChainYears < 15);
+  }
+  if (f.motherDeedRegistered === false) {
+    addPain('CRITICAL','Title',
+      'Mother deed not registered.',
+      'Registration Act 1908, Sec. 17 — compulsory registration of conveyances >₹100.',
+      'Unregistered mother deed cannot convey title. Entire chain is void.',
+      'Reject the deal unless mother deed is re-executed and registered.',
+      'Seller-dependent', true);
+  } else if (f.motherDeedRegistered === null || f.motherDeedRegistered === undefined) {
+    addPain('HIGH','Title','Mother deed registration status not verified.',
+      'Registration Act 1908, Sec. 17.','Title may be void if unregistered.',
+      'Obtain certified copy from SRO.','1 week', false);
+  }
+
+  // ── 2. EC ──
+  if (f.ecYears === 0) {
+    addPain('CRITICAL','Title','No EC obtained.',
+      'Indian Evidence Act — EC is primary proof of title continuity.',
+      'Entire legal opinion is meaningless without EC.',
+      'Obtain EC from SRO / MeeSeva.','1–2 weeks', true);
+  } else if (f.ecYears < 15) {
+    addPain('CRITICAL','Title',
+      `EC covers only ${f.ecYears} years — below 15-year statutory minimum.`,
+      'IGRS/Registration guidelines; judicial dicta requiring 15yr minimum.',
+      'Latent liens/mortgages from 15-30yr window remain unknown.',
+      'Obtain extended EC (15–30 years).','1–2 weeks', true);
+  } else if (f.ecYears < 30) {
+    addPain('MEDIUM','Title',
+      `EC covers ${f.ecYears} years — extending to 30 yrs recommended.`,
+      'Best-practice DD standard.','Residual risk of older encumbrances.',
+      'Request extended 30-year EC.','1 week', false);
+  }
+  if (f.ecHasGaps === true) {
+    addPain('CRITICAL','Title','Gaps detected in EC — missing years.',
+      'Title-chain continuity rule.','Undisclosed transactions in gap period can void title.',
+      'Reconstruct gap years via SRO certified copies, Pahani / 1B, mutation registers.',
+      '3–6 weeks', true);
+  }
+  if (f.ecLisPendens === true) {
+    addPain('CRITICAL','Litigation','Lis pendens / attachment order found in EC.',
+      'CPC Sec. 52 (Doctrine of Lis Pendens).',
+      'Any purchase is subject to pending litigation outcome. Deal-blocker.',
+      'Do NOT proceed until litigation is resolved or vacated.',
+      'Case-dependent', true);
+  }
+
+  // ── 3. GPA ──
+  if (f.gpaInvolved === true) {
+    if (f.gpaRegistered === false) {
+      addPain('CRITICAL','Title','Unregistered GPA used in title chain.',
+        'SC Suraj Lamp & Industries v. State of Haryana (2009) 5 SCC 161 — unregistered GPA does NOT convey title.',
+        'All transactions downstream of unregistered GPA are void.',
+        'Reject. Insist on registered sale deed from original owner.',
+        'Not fixable via GPA route', true);
+    } else if (f.gpaRegistered === null || f.gpaRegistered === undefined) {
+      addPain('HIGH','Title','GPA used but registration status unverified.',
+        'Registration Act 1908, Sec. 17(1A) (2001 amendment).',
+        'Risk of void transaction.',
+        'Obtain certified copy of GPA from SRO.','1 week', false);
+    }
+  }
+
+  // ── 4. SELLER CAPACITY ──
+  if (f.ownerType === 'HUF' && f.allCoparcenerConsents !== true) {
+    addPain('HIGH','Seller Capacity',
+      'HUF sale without all coparcener consents on record.',
+      'Hindu Succession (Amendment) Act 2005; SC Vineeta Sharma 2020.',
+      'Sale can be challenged by any coparcener. Partition suit risk.',
+      'Obtain signed consents from all major coparceners; court permission for minors.',
+      '4–8 weeks', f.allCoparcenerConsents === false);
+  }
+  if ((f.ownerType === 'Company' || f.ownerType === 'Partnership' || f.ownerType === 'Trust') && f.boardResolution !== true) {
+    addPain('HIGH','Seller Capacity',
+      'No board resolution / partner authorisation verified.',
+      'Companies Act 2013 Sec. 180; Partnership Act 1932 Sec. 19; Trusts Act 1882.',
+      'Seller may lack legal authority to transfer. Sale voidable.',
+      'Obtain certified board resolution / partner deed / trustee minute.',
+      '1 week', false);
+  }
+  if (f.ownerType === 'NRI' && f.femaCompliance !== true) {
+    addPain('HIGH','Seller Capacity',
+      'NRI seller — FEMA compliance not verified.',
+      'FEMA 1999; RBI Master Direction on Acquisition of Immovable Property.',
+      'Repatriation issues; RBI penalties; transfer may be invalid.',
+      'Verify FEMA forms; ensure consideration routed via NRO/NRE as required; seller\'s CA certificate.',
+      '2 weeks', false);
+  }
+  if (f.ownerType === 'Inherited' && f.legalHeirClear !== true) {
+    addPain('HIGH','Seller Capacity',
+      'Inherited land — legal heir certificate / succession not confirmed.',
+      'Indian Succession Act 1925; personal law of deceased.',
+      'Omitted heir can sue for share; sale voidable to that extent.',
+      'Obtain legal heir certificate + family tree affidavit + indemnity from all heirs.',
+      '4–6 weeks', false);
+  }
+  if (f.minorsInvolved === true) {
+    addPain('HIGH','Seller Capacity',
+      'Minor among owners — court permission not addressed.',
+      'Hindu Minority & Guardianship Act 1956 Sec. 8; Guardians & Wards Act 1890.',
+      'Sale void without District Court permission.',
+      'Natural guardian files petition for District Court sanction.',
+      '3–6 months', true);
+  }
+  if (f.insolvencyRisk === true) {
+    addPain('CRITICAL','Seller Capacity',
+      'Seller flagged for IBC / insolvency risk.',
+      'IBC 2016 Sec. 14 (moratorium); Sec. 43-45 (preferential transactions).',
+      'Transfer can be clawed back by Resolution Professional.',
+      'Halt. Obtain NCLT status check on all seller entities.',
+      'Case-dependent', true);
+  }
+  if (f.priorAgreements === true) {
+    addPain('CRITICAL','Seller Capacity',
+      'Landowner has prior agreement(s) to sell with third parties.',
+      'Specific Relief Act 1963 Sec. 19(b); registered prior agreement prevails.',
+      'Third party can enforce specific performance against Organo.',
+      'Get signed declaration + indemnity + search for unregistered ATS.',
+      '1–2 weeks', true);
+  }
+
+  // ── 5. CLASSIFICATION ──
+  if (f.classification === 'Assigned') {
+    addPain('CRITICAL','Classification',
+      'Land classified as ASSIGNED — non-transferable.',
+      'AP Assigned Lands (POT) Act 1977; TS Rights in Land & Pattadar Pass Books Act 1971.',
+      'Sale is void; land resumed by government.',
+      'Reject. Assigned lands cannot be purchased by non-assignees.',
+      'Not fixable', true);
+  } else if (f.classification === 'Ceiling') {
+    addPain('CRITICAL','Classification',
+      'Land under Ceiling / Surplus — transfer prohibited.',
+      'AP Land Reforms (Ceiling on Agricultural Holdings) Act 1973.',
+      'Sale void; possession resumed.','Reject.','Not fixable', true);
+  } else if (f.classification === 'Forest') {
+    addPain('CRITICAL','Classification',
+      'Forest / RF / PF land — no private transfer.',
+      'Indian Forest Act 1927; Forest Conservation Act 1980 Sec. 2.',
+      'Sale void; criminal prosecution risk.','Reject.','Not fixable', true);
+  } else if (f.classification === 'Tribal') {
+    addPain('CRITICAL','Classification',
+      'Schedule-V / Tribal area — non-tribal purchase prohibited.',
+      'AP Scheduled Areas Land Transfer Regulation 1 of 70 (as amended by Reg 1 of 1970).',
+      'Sale void ab initio; resumption to tribal holder.','Reject.','Not fixable', true);
+  } else if (f.classification === 'Endowment') {
+    addPain('CRITICAL','Classification',
+      'Endowment / Wakf land.',
+      'Charitable & Hindu Religious Endowments Act; Wakf Act 1995 Sec. 51.',
+      'Alienation prohibited without Commissioner sanction; usually void.',
+      'Reject unless formal Commissioner alienation order exists.',
+      'Not fixable in most cases', true);
+  } else if (f.classification === 'Agricultural' && f.dealType !== 'Outright') {
+    addPain('HIGH','Conversion',
+      'Agricultural land being developed — NALA / NA conversion mandatory.',
+      'TS NALA Act 2006; AP Land Revenue Act Sec. 47A.',
+      'Development on ag-land without NALA is illegal; demolition + penalty.',
+      'RDO/DRO NALA order BEFORE construction.',
+      '2–4 months', false);
+  } else if (f.classification === 'Unknown') {
+    addPain('HIGH','Classification',
+      'Land classification not verified.',
+      'Foundational DD requirement.',
+      'Potentially unbuyable land category (assigned/forest/tribal).',
+      'Verify classification via Pahani / 1B / ROR / Bhu Bharati.',
+      '1 week', false);
+  }
+
+  // ── 6. NALA ──
+  if (f.nalaConversion === 'Pending') {
+    addPain('HIGH','Conversion',
+      'NALA conversion pending — cannot construct until order issued.',
+      'TS NALA Act 2006.',
+      'Construction without NALA = illegal structure, penalties.',
+      'Follow up with RDO/DRO; target order before mobilisation.',
+      '2–4 months', false);
+  } else if (f.nalaConversion === 'Unknown' && f.classification === 'Agricultural') {
+    addPain('HIGH','Conversion',
+      'NALA conversion status unknown despite agricultural land.',
+      'TS NALA Act 2006.','Construction risk; may need to restart NALA.',
+      'Verify with RDO office; obtain certified copy of order if exists.','1–2 weeks', false);
+  }
+
+  // ── 7. RERA ──
+  const reraTriggered = (f.extentSqm > 500) || (f.numberOfUnits > 8);
+  if (reraTriggered) {
+    if (f.reraRegistered === false) {
+      addPain('CRITICAL','RERA',
+        'Project crosses TGRERA threshold but NOT registered.',
+        'RERA Act 2016 Sec. 3; TGRERA rules. Penalty up to 10% of project cost.',
+        'Cannot advertise / sell units. Penalty + prosecution.',
+        'Register with TGRERA before any marketing/booking.',
+        '4–8 weeks', true);
+    } else if (f.reraRegistered === null) {
+      addPain('HIGH','RERA',
+        'RERA status not confirmed despite triggering thresholds.',
+        'RERA Act 2016 Sec. 3.','Launch delay; compliance breach risk.',
+        'Verify on TGRERA portal; obtain registration certificate.','1 week', false);
+    } else if (f.reraRegistered === 'na') {
+      addPain('MEDIUM','RERA',
+        'Form indicates RERA N/A but thresholds (>500 sq.m or >8 units) ARE crossed.',
+        'RERA Act 2016 Sec. 3.','Likely false exemption.','Re-verify applicability with counsel.','1 week', false);
+    }
+  }
+
+  // ── 8. SECTION 22-A ──
+  if (isTG) {
+    if (f.section22A === 'Flagged') {
+      addPain('CRITICAL','Regulatory',
+        'Property listed in Section 22-A prohibited list.',
+        'AP Rights in Land & Pattadar Pass Books Act 1971 Sec. 22-A (as applicable in TS).',
+        'SRO will not register sale deed. Deal dead unless de-listed.',
+        'File for de-listing via RDO; usually requires judicial order.',
+        '6 months+', true);
+    } else if (f.section22A !== 'Clear') {
+      addPain('HIGH','Regulatory',
+        'Section 22-A clearance not verified on BOTH IGRS + Bhu Bharati portals.',
+        'Sec. 22-A — digital block at SRO.',
+        'Registration may fail at closing.',
+        'Verify on IGRS AND Bhu Bharati; save portal screenshots.','1 day', false);
+    }
+  }
+
+  // ── 9. FTL / BUFFER (TELANGANA) ──
+  if (isTG) {
+    if (f.ftlBuffer === 'In Buffer') {
+      addPain('CRITICAL','FTL/Buffer',
+        'Property lies within FTL buffer zone.',
+        'G.O. 99 (Jul 2024); HYDRAA notifications; SC directions Nov/Dec 2024 — cannot be regularised.',
+        'Demolition risk. Post-Dec 2024 SC direction bars regularisation.',
+        'Reject. 262+ demolitions in 2024-25 set precedent.',
+        'Not fixable', true);
+    } else if (f.ftlBuffer !== 'Clear') {
+      addPain('HIGH','FTL/Buffer',
+        'FTL / buffer zone status not verified.',
+        'G.O. 99 / WALTA 2002 / HYDRAA mandate.',
+        'Risk of construction in buffer → demolition.',
+        'Cross-reference FTL Map + Cadastral Map; consult HYDRAA circle office.',
+        '1–2 weeks', false);
+    }
+  }
+
+  // ── 10. BHU BHARATI (TELANGANA) ──
+  if (isTG) {
+    if (f.bhuBharatiROR === 'Mismatch') {
+      addPain('HIGH','Records',
+        'Bhu Bharati ROR / 1B shows name or extent mismatch.',
+        'TS Bhu Bharati Act 2025 (replaced Dharani Apr 2025).',
+        'Registration blocked until ROR corrected.',
+        'File ROR correction via Bhu Bharati portal (deadline Apr 13, 2026).',
+        '2–8 weeks', false);
+    } else if (f.bhuBharatiROR !== 'Verified') {
+      addPain('MEDIUM','Records',
+        'Bhu Bharati ROR not verified.',
+        'Bhu Bharati Act 2025.','Unknown record discrepancies.',
+        'Pull ROR/1B + PPB from Bhu Bharati portal; match with deed.','1 day', false);
+    }
+    if (f.bhudhaarAvailable === false) {
+      addPain('MEDIUM','Records','14-digit Bhudhaar not assigned.',
+        'Bhu Bharati Act 2025.','Processing delays for mutation/registration.',
+        'Apply via Bhu Bharati portal.','2–4 weeks', false);
+    }
+    if (f.bhuBharatiCorrectionDone === false) {
+      tsItems.push({item:'Bhu Bharati ROR correction', deadline:'Apr 13, 2026',
+        consequence_if_missed:'Post-deadline corrections require civil court order — 12-24 months.'});
+    } else if (f.bhuBharatiCorrectionDone === null || f.bhuBharatiCorrectionDone === undefined) {
+      tsItems.push({item:'Verify Bhu Bharati ROR correction status', deadline:'Apr 13, 2026',
+        consequence_if_missed:'Any ROR error becomes litigation after this date.'});
+    }
+  }
+  if (f.pendingMutations === true) {
+    tsItems.push({item:'Complete pending mutation entries', deadline:'Before registration',
+      consequence_if_missed:'Seller\'s ownership not reflected in revenue records → registration hiccup.'});
+  }
+
+  // ── 11. LAYOUT / LAND USE ──
+  if (f.layoutApproval === 'Pending') {
+    addPain('HIGH','Approvals',
+      'Layout / planning approval pending.',
+      'HMDA Act 2008 Sec. 18-20 / equivalent.',
+      'Cannot commence development; plot sales blocked.',
+      'Follow up via TG-bPASS (Apr 2024+) or planning authority.','2–4 months', false);
+  } else if (f.layoutApproval === 'Unknown') {
+    addPain('MEDIUM','Approvals','Layout approval status not known.',
+      '—','Project feasibility unclear.','Check jurisdiction + apply.','—', false);
+  }
+  if (f.landUseCertificate === false) {
+    addPain('MEDIUM','Approvals','Land Use Certificate not obtained.',
+      'HMDA Act / TCP Act equivalents.','Zoning conflict risk.',
+      'Apply for LUC from planning authority.','2–3 weeks', false);
+  }
+
+  // ── 12. LITIGATION ──
+  if (f.courtSearchDone !== true) {
+    addPain('HIGH','Litigation',
+      'No comprehensive court search report obtained.',
+      'Standard DD practice.',
+      'Pending suits surface post-closing; specific performance decrees.',
+      'Commission search: District Court, High Court, Revenue Tribunal, RERA Tribunal, Consumer forum.',
+      '2–3 weeks', false);
+  }
+  ['districtCourt','highCourt','revenueTribunal'].forEach(key => {
+    const v = f[key];
+    const label = {districtCourt:'District Court', highCourt:'High Court', revenueTribunal:'Revenue Tribunal'}[key];
+    if (v === 'Pending Cases') {
+      addPain('CRITICAL','Litigation',
+        `${label} search reveals pending case(s).`,
+        'CPC; State Revenue Code.',
+        'Deal may be subject to decree. Title at risk.',
+        'Obtain case papers + counsel opinion on impact.','Case-dependent', true);
+    } else if (v === 'Not Done') {
+      addPain('MEDIUM','Litigation',`${label} search not done.`,
+        'Standard DD.','Hidden litigation.','Commission search.','1–2 weeks', false);
+    }
+  });
+
+  // ── 13. PHYSICAL VERIFICATION ──
+  if (f.siteVisitDone !== true) {
+    addPain('MEDIUM','Physical Verification',
+      'No site visit evidenced.',
+      'Standard DD practice.',
+      'Encroachments / access / ground realities unknown.',
+      'Schedule site visit with surveyor + landowner.','1 week', false);
+  }
+  if (f.boundariesMatchFMB === false) {
+    addPain('HIGH','Physical Verification',
+      'Boundaries DO NOT match FMB / survey sketch.',
+      'Survey & Settlement Act.','Extent dispute / encroachment; registration issues.',
+      'Commission re-survey by DILR; reconcile before closing.','3–6 weeks', false);
+  }
+  if (f.encroachments === true) {
+    addPain('HIGH','Physical Verification',
+      'Encroachments detected on-site.',
+      'Specific Relief Act 1963.',
+      'Possession disputes; delay in development.',
+      'Seller to clear encroachments pre-closing; OR discount + eviction plan.',
+      '1–6 months', false);
+  }
+  if (f.approachRoad === false) {
+    addPain('HIGH','Physical Verification',
+      'No clear approach road.',
+      'Planning/layout rules require approach road.',
+      'Layout approval denied; project dead-end.',
+      'Negotiate easement / road purchase.','Varies', false);
+  }
+
+  // ── 14. FINANCIAL / TAX ──
+  const agrLakh = (f.agreementValue || 0) / 100000;
+  const tdsRequired = agrLakh > 50;
+  if (f.agreementValue && f.circleRate && f.circleRate > f.agreementValue) {
+    addPain('MEDIUM','Tax',
+      `Circle rate (₹${(f.circleRate/10000000).toFixed(2)} Cr) exceeds agreement value (₹${(f.agreementValue/10000000).toFixed(2)} Cr).`,
+      'IT Act Sec. 50C / 56(2)(x); Stamp Act — higher-of rule.',
+      `Stamp duty on higher value; Sec. 56(2)(x) gift-tax-like charge on buyer for gap.`,
+      'Negotiate value matching circle rate OR budget extra stamp duty + tax.',
+      'Pre-closing', false);
+  }
+  if (f.stampDutyCorrect === false) {
+    addPain('HIGH','Tax','Stamp duty under-paid.',
+      'Stamp Act; Registration Act.',
+      'Deed unenforceable; penalty up to 10× deficit.',
+      'Pay deficit + penalty before relying on deed.','—', false);
+  }
+  if (f.taxReceipts === false) {
+    addPain('MEDIUM','Financial','Land tax receipts (10 yr) not on file.',
+      'Standard DD.','Arrears may attach to property.',
+      'Collect from seller / municipal office.','1–2 weeks', false);
+  }
+
+  // ── 15. JV / JDA SPECIFIC ──
+  if (isJV) {
+    // Warn about co-promoter liability only if indemnity clause is NOT confirmed in place.
+    if (f.coPromoterClause !== true) {
+      addPain('CRITICAL','JV',
+        'Co-promoter joint liability under RERA without back-to-back indemnity.',
+        'SC Sriganesh Developers v. Unishire (Feb 2026); RERA Act 2016 Sec. 2(zk) & Sec. 11.',
+        'Every buyer claim, delay penalty, title defect = Organo\'s liability even if landowner is at fault.',
+        'Add back-to-back indemnity clause; escrow landowner share until completion; joint RERA registration.',
+        'Pre-signing', false);
+    }
+
+    if (f.poaRegistered === false) {
+      addPain('CRITICAL','JV','POA not registered.',
+        'Registration Act 1908 Sec. 17(1A); SC Suraj Lamp 2009.',
+        'POA legally ineffective; construction / sales may be challenged.',
+        'Execute registered irrevocable POA before mobilisation.','2 weeks', true);
+    } else if (f.poaRegistered === null || f.poaRegistered === undefined) {
+      addPain('HIGH','JV','POA registration status unverified.',
+        'Registration Act 1908.','Potential invalid POA.','Verify at SRO.','1 week', false);
+    }
+    if (f.poaIrrevocable === false) {
+      addPain('HIGH','JV','POA is revocable.',
+        'SC Akshay Kumar v. Aditya — revocable POA can be withdrawn.',
+        'Landowner can revoke mid-project.',
+        'Amend to irrevocable; register.','2 weeks', false);
+    }
+    if (f.coPromoterClause !== true) {
+      jvRisks.push({risk:'No back-to-back indemnity clause from landowner',
+        impact:'Per SC Feb 2026 ruling, Organo bears full RERA liability for landowner-side defects (title, NALA, approvals).',
+        mitigation:'Add clause: landowner indemnifies Organo against all title / approval / regulatory claims; escrow landowner\'s share until completion.'});
+    }
+    if (f.exitClause !== true) {
+      jvRisks.push({risk:'Exit / termination clause missing or unclear',
+        impact:'Disputes over exit can freeze project mid-construction.',
+        mitigation:'Define triggers (breach, force majeure, approval failure), notice period, unwinding mechanism, asset division.'});
+    }
+    if (f.delayPenalties !== true) {
+      jvRisks.push({risk:'No delay penalty mechanism',
+        impact:'Either side can delay indefinitely without cost.',
+        mitigation:'Milestone-based penalty ladder (per month delay, capped at X% of project value).'});
+    }
+    if (f.revenueSharePercent && (f.revenueSharePercent < 40 || f.revenueSharePercent > 70)) {
+      jvRisks.push({risk:`Revenue/area share of ${f.revenueSharePercent}% is outside typical JV band (40–70%)`,
+        impact:'Indicates weak negotiating position or unusual deal structure.',
+        mitigation:'Re-examine valuation, landowner contribution, developer risk premium.'});
+    }
+  }
+
+  // ── DOCUMENTS REQUIRED ──
+  critDocs.push(
+    {doc:'Mother deed + all intermediate registered deeds (30 yr)', why:'Title chain foundation', where:'SRO / Seller', est_time:'2–4 weeks'},
+    {doc:'EC (15–30 yr)', why:'Verify no encumbrances/lis pendens', where:'IGRS / MeeSeva', est_time:'1–2 weeks'},
+  );
+  if (isTG) critDocs.push(
+    {doc:'Section 22-A clearance (both portals)', why:'Registration block check', where:'IGRS + Bhu Bharati', est_time:'1 day'},
+    {doc:'Bhu Bharati ROR/1B + PPB + Bhudhaar', why:'Revenue record verification', where:'Bhu Bharati portal', est_time:'1 day'},
+    {doc:'FTL / Buffer zone confirmation', why:'Demolition risk check', where:'HYDRAA circle office', est_time:'1–2 weeks'}
+  );
+  if (reraTriggered) critDocs.push(
+    {doc:'TGRERA registration certificate', why:'Mandatory for sales/marketing', where:'TGRERA portal', est_time:'4–8 weeks'}
+  );
+  if (isJV) critDocs.push(
+    {doc:'Registered irrevocable POA', why:'Developer authority', where:'SRO', est_time:'2 weeks'},
+    {doc:'JV / JDA with co-promoter indemnity clause', why:'SC Feb 2026 ruling protection', where:'Drafted by counsel', est_time:'2–3 weeks'}
+  );
+  if (f.classification === 'Agricultural') critDocs.push(
+    {doc:'NALA / NA conversion order', why:'Required before construction', where:'RDO / DRO', est_time:'2–4 months'}
+  );
+
+  impDocs.push(
+    {doc:'Court search report (District + High Court + Tribunals)', why:'Litigation exposure', where:'Lawyer commission', est_time:'2–3 weeks'},
+    {doc:'Site survey + boundary verification vs FMB', why:'Extent / encroachment check', where:'Licensed surveyor', est_time:'1–2 weeks'},
+    {doc:'Land tax receipts (10 yr)', why:'Arrears check', where:'Municipal / Gram Panchayat', est_time:'1 week'},
+    {doc:'Seller KYC + PAN + affidavit of no prior ATS', why:'Capacity + prior agreement risk', where:'Seller', est_time:'3 days'}
+  );
+  if (f.ownerType === 'HUF') impDocs.push({doc:'Coparcener consent affidavits', why:'HUF transfer validity', where:'Seller family', est_time:'2 weeks'});
+  if (f.ownerType === 'Company') impDocs.push({doc:'Board resolution + MoA/AoA', why:'Corporate authorisation', where:'Seller company', est_time:'3 days'});
+  if (f.ownerType === 'NRI') impDocs.push({doc:'FEMA compliance + RBI permission (if required)', why:'NRI transfer validity', where:'Seller / CA', est_time:'2 weeks'});
+  if (f.ownerType === 'Inherited') impDocs.push({doc:'Legal heir certificate + family tree affidavit', why:'Inheritance validity', where:'Tehsildar', est_time:'4–6 weeks'});
+
+  recDocs.push(
+    {doc:'Physical verification photographs + signed site-visit report', why:'Ground reality', where:'Internal team', est_time:'1 day'},
+    {doc:'Neighbour / panchayat NOCs', why:'Social clearance', where:'Neighbours', est_time:'1 week'},
+    {doc:'Environmental / water / power availability letters', why:'Project feasibility', where:'Utility departments', est_time:'2 weeks'},
+    {doc:'Legal opinion from seller\'s lawyer + independent Organo counsel opinion', why:'Independent validation', where:'Lawyers', est_time:'2–3 weeks'}
+  );
+
+  // ── RISK SCORING ──
+  const criticalCount = pains.filter(p=>p.severity==='CRITICAL').length;
+  const highCount = pains.filter(p=>p.severity==='HIGH').length;
+  const medCount = pains.filter(p=>p.severity==='MEDIUM').length;
+  const blockingCount = pains.filter(p=>p.blocking).length;
+
+  const clamp = n => Math.max(0, Math.min(100, Math.round(n)));
+  const legalScore = clamp(criticalCount*28 + highCount*10 + medCount*3);
+  const complianceCategories = ['Classification','RERA','Regulatory','FTL/Buffer','Approvals','Conversion','Records'];
+  const complianceCount = pains.filter(p => complianceCategories.includes(p.category));
+  const complianceScore = clamp(complianceCount.filter(p=>p.severity==='CRITICAL').length*30 + complianceCount.filter(p=>p.severity==='HIGH').length*12 + complianceCount.filter(p=>p.severity==='MEDIUM').length*4);
+  const financialPains = pains.filter(p => p.category==='Tax' || p.category==='Financial');
+  const financialScore = clamp(financialPains.filter(p=>p.severity==='CRITICAL').length*30 + financialPains.filter(p=>p.severity==='HIGH').length*15 + financialPains.filter(p=>p.severity==='MEDIUM').length*6);
+  const overall = clamp((legalScore*0.45 + complianceScore*0.35 + financialScore*0.20));
+
+  // ── VERDICT ──
+  let verdict, oneLiner;
+  if (blockingCount > 0) {
+    verdict = 'NO-GO';
+    oneLiner = `${blockingCount} deal-blocking issue${blockingCount>1?'s':''} detected. Do not proceed.`;
+  } else if (criticalCount > 0) {
+    verdict = 'HOLD';
+    oneLiner = `${criticalCount} critical issue${criticalCount>1?'s':''} must be resolved before moving forward.`;
+  } else if (highCount > 2) {
+    verdict = 'GO WITH CONDITIONS';
+    oneLiner = `${highCount} high-severity items require remediation; deal is workable with controls.`;
+  } else if (highCount > 0 || medCount > 3) {
+    verdict = 'GO WITH CONDITIONS';
+    oneLiner = `Minor gaps exist; fixable with standard DD completion.`;
+  } else {
+    verdict = 'GO';
+    oneLiner = `No critical or high-severity issues. Proceed with standard closing.`;
+  }
+  const confidence = Math.max(50, 100 - criticalCount*15 - highCount*5 - medCount*2);
+
+  // ── TITLE STATUS ──
+  let titleStatus = 'Clear', titleExpl = 'No material title issues identified.';
+  const titlePains = pains.filter(p => p.category==='Title' || p.category==='Litigation');
+  if (titlePains.some(p=>p.severity==='CRITICAL' && p.blocking)) { titleStatus='Critical'; titleExpl='Blocking title defect — refer to pain points.'; }
+  else if (titlePains.some(p=>p.severity==='CRITICAL')) { titleStatus='High Risk'; titleExpl='Critical title issue flagged.'; }
+  else if (titlePains.some(p=>p.severity==='HIGH')) { titleStatus='Moderate Risk'; titleExpl='High-severity title items require resolution.'; }
+  else if (titlePains.length) { titleStatus='Moderate Risk'; titleExpl='Some title verification items pending.'; }
+
+  // ── REGULATORY FLAGS ──
+  const regFlags = {
+    rera_applicable: reraTriggered,
+    rera_compliant: f.reraRegistered === true ? true : (f.reraRegistered === false ? false : null),
+    planning_authority: f.layoutApproval === 'Unknown' ? null : f.layoutApproval,
+    layout_approved: (f.layoutApproval && f.layoutApproval !== 'Pending' && f.layoutApproval !== 'Unknown' && f.layoutApproval !== 'None') ? true : (f.layoutApproval === 'Pending' ? false : null),
+    conversion_status: f.nalaConversion,
+    environmental_risk: f.ftlBuffer === 'In Buffer' ? 'Critical' : (f.ftlBuffer === 'Clear' ? 'Low' : 'Unknown'),
+    ftl_buffer_risk: f.ftlBuffer === 'In Buffer' ? 'High' : (f.ftlBuffer === 'Clear' ? 'Clear' : 'Unknown'),
+    prohibited_list: f.section22A === 'Flagged' ? 'Flagged' : (f.section22A === 'Clear' ? 'Clear' : 'Unknown')
+  };
+
+  // ── PREDICTED RISKS (heuristic) ──
+  const ownershipPct = Math.min(95, criticalCount*18 + highCount*7 + (f.ecLisPendens===true?30:0) + (f.gpaInvolved===true && f.gpaRegistered!==true?20:0));
+  const approvalPct = Math.min(95, (f.nalaConversion==='Pending'?25:0) + (f.layoutApproval==='Pending'?25:0) + (reraTriggered && f.reraRegistered!==true?20:0) + (f.bhuBharatiROR==='Mismatch'?15:0) + medCount*3);
+  const complicationPct = Math.min(95, overall * 0.9);
+
+  // ── TAX IMPLICATIONS ──
+  const stampNote = isTG ? 'TS: 6% urban (4% stamp + 1.5% cess + 0.5% reg). Circle rates revised 30–50% in Apr 2025.' : 'Apply state-specific stamp & registration rates.';
+  const higherOf = (f.agreementValue||0) > (f.circleRate||0) ? f.agreementValue : f.circleRate;
+  const stampDue = higherOf ? '≈ ₹'+((higherOf*0.06)/100000).toFixed(2)+' L (on higher of agr/circle)' : 'Enter values to calculate';
+
+  // ── FINAL RECOMMENDATION POINTS ──
+  const recPoints = [];
+  if (verdict === 'NO-GO') {
+    recPoints.push('Reject this deal in current form.');
+    recPoints.push(`${blockingCount} blocking issue${blockingCount>1?'s':''} cannot be resolved via standard remedies.`);
+  } else if (verdict === 'HOLD') {
+    recPoints.push(`Pause negotiations until ${criticalCount} critical issue${criticalCount>1?'s':''} are resolved.`);
+    recPoints.push('Obtain documented resolution for each CRITICAL pain point before re-engaging.');
+  } else {
+    recPoints.push('Deal is workable. Proceed with conditions below.');
+  }
+  if (critDocs.length) recPoints.push(`Collect ${critDocs.length} critical documents before signing.`);
+  if (isJV) recPoints.push('JV: lock back-to-back indemnity + escrow of landowner share per SC Feb 2026 ruling.');
+  if (isTG) recPoints.push('Telangana: verify Section 22-A on BOTH IGRS + Bhu Bharati; confirm FTL/buffer status with HYDRAA circle office.');
+  if (highCount) recPoints.push(`Remediate ${highCount} high-severity items pre-closing.`);
+  if (!f.courtSearchDone) recPoints.push('Commission full court search (District + High Court + Revenue Tribunal + RERA Tribunal + Consumer forum).');
+  if (!f.siteVisitDone) recPoints.push('Complete site visit + FMB verification + encroachment check.');
+
+  // ── BUILD OUTPUT (matches renderReport schema exactly) ──
+  return {
+    deal_type: f.dealType + (f.projectName ? ' — ' + f.projectName : ''),
+    state_detected: f.state,
+    location_details: {
+      district: f.district,
+      mandal: f.mandal,
+      village: f.village,
+      survey_nos: f.surveyNos
+    },
+    land_summary: {
+      extent: f.extent,
+      classification: f.classification,
+      current_owners: f.currentOwners,
+      market_value_estimate: f.circleRate ? '₹'+(f.circleRate/10000000).toFixed(2)+' Cr (circle rate)' : '—'
+    },
+    go_no_go: {verdict, confidence, one_liner: oneLiner},
+    title_status: {status: titleStatus, explanation: titleExpl},
+    regulatory_flags: regFlags,
+    pain_points: pains,
+    jv_specific_risks: jvRisks,
+    litigation_check: {
+      court_search_provided: f.courtSearchDone === true,
+      pending_cases_detected: (f.districtCourt==='Pending Cases' || f.highCourt==='Pending Cases' || f.revenueTribunal==='Pending Cases') ? true : (f.courtSearchDone===true ? false : null),
+      lis_pendens: f.ecLisPendens,
+      prompt: f.courtSearchDone !== true ? 'Commission: District Court, High Court, Revenue Tribunal, RERA Tribunal, Consumer forum searches.' : ''
+    },
+    physical_verification: {
+      site_visit_evidenced: f.siteVisitDone === true,
+      prompt: f.siteVisitDone !== true ? 'Site visit + FMB verification + encroachment + approach road check required.' : ''
+    },
+    seller_capacity: {
+      competent: (f.minorsInvolved===true || f.insolvencyRisk===true) ? false : (f.minorsInvolved===false && f.insolvencyRisk===false ? true : null),
+      prior_agreements: f.priorAgreements,
+      insolvency_risk: f.insolvencyRisk,
+      notes: `Owner type: ${f.ownerType}. Sellers: ${f.numberOfSellers}.` + (f.ownerType==='HUF'?' HUF coparcener consents '+(f.allCoparcenerConsents===true?'OBTAINED':f.allCoparcenerConsents===false?'MISSING':'UNKNOWN')+'.':'')
+    },
+    tax_implications: {
+      stamp_duty: stampDue,
+      tds_applicable: tdsRequired,
+      gst_notes: isJV ? 'JV construction attracts GST 5% (affordable) / 12% (normal); ITC blocked.' : 'Pure land sale — no GST on land value.',
+      capital_gains_risk: 'Seller to advise on LTCG/STCG; indexation & Sec 54 exemptions to be discussed.'
+    },
+    time_sensitive_items: tsItems,
+    documents_required: {critical: critDocs, important: impDocs, recommended: recDocs},
+    risk_scores: {legal: legalScore, compliance: complianceScore, financial: financialScore, overall: overall},
+    predicted_risks: {
+      ownership_dispute_pct: ownershipPct,
+      approval_delay_pct: approvalPct,
+      legal_complication_pct: complicationPct,
+      assumptions: 'Rule-based deterministic estimation from form inputs. Higher percentages indicate more CRITICAL/HIGH issues or unverified items.'
+    },
+    stamp_duty_notes: stampNote,
+    final_recommendation: {verdict, points: recPoints}
+  };
+}
+
+// ── PROCESS MANUAL FORM SUBMIT ──
+function processManual() {
+  try {
+    const formData = collectFormData();
+    const result = runRuleEngine(formData);
+    analysisResult = result;
+    renderReport(result);
+    showTab('report');
+    window.scrollTo({top: 0, behavior: 'smooth'});
+  } catch (e) {
+    console.error(e);
+    alert('Error running rule engine: ' + e.message);
+  }
 }
 
 // ── DOCUMENT GUIDE ──
@@ -627,6 +1765,9 @@ function updateCheckCount() {
 window.addEventListener('DOMContentLoaded', () => {
   renderDocGuide();
   renderChecklist();
+  updateConditionalFields();
+  // Dealtype change → re-evaluate JV section visibility
+  document.getElementById('f_dealType').addEventListener('change', updateConditionalFields);
 });
 </script>
 </body>
